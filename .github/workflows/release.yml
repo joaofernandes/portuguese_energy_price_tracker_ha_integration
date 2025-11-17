@@ -9,6 +9,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     name: Create Release
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,7 +58,7 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
 
-          # Extract the changelog section for this version
+          # Extract the [Unreleased] section from CHANGELOG.md
           python3 << 'EOF' > release_notes.md
           import re
           import sys
@@ -67,13 +69,17 @@ jobs:
               with open('CHANGELOG.md', 'r') as f:
                   content = f.read()
 
-              # Find the section for this version
-              # Pattern: ## [version] - date
-              pattern = rf'## \[{re.escape(version)}\].*?\n(.*?)(?=\n## \[|$)'
+              # Find the [Unreleased] section
+              # Pattern: ## [Unreleased] followed by content until next ## section
+              pattern = r'## \[Unreleased\](.*?)(?=\n## \[|$)'
               match = re.search(pattern, content, re.DOTALL)
 
               if match:
                   changelog = match.group(1).strip()
+
+                  # If changelog is empty, use a default message
+                  if not changelog or changelog == "":
+                      changelog = "Updates and improvements"
 
                   # Add footer with attribution
                   footer = f"""
@@ -93,7 +99,7 @@ jobs:
 
                   print(changelog + footer)
               else:
-                  print(f"# Version {version}\n\nNo changelog entry found for this version.")
+                  print(f"# Version {version}\n\nUpdates and improvements")
           except Exception as e:
               print(f"# Version {version}\n\nError extracting changelog: {str(e)}")
           EOF

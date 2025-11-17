@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Config entry removal handler (`async_remove_entry`) with proper logging
 - Documentation for managing configurations (add, edit, delete) in README
-- Automated release workflow (`.github/workflows/release.yml`)
-- Release preparation script (`scripts/prepare_release.py`)
-- Automatic GitHub release creation with changelog extraction
+- **Fully automated releases**: Every push to main now automatically creates a GitHub release
+  - Auto-increments patch version (or uses manifest.json if changed)
+  - Extracts changelog from [Unreleased] section
+  - Creates tag and publishes release without manual intervention
+- ApexCharts visualization examples for provider comparison in `examples/` directory
 
 ### Changed
 - **IMPORTANT**: Removed hourly aggregation - now exposes native 15-minute intervals from CSV source
