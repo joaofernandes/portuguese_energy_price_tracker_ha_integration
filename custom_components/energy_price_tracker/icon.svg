@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for price chart bars -->
+    <linearGradient id="priceGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#00C853;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF5252;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Glow effect for lightning -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Portuguese flag accent colors -->
+    <linearGradient id="flagAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#006600;stop-opacity:0.3" />
+      <stop offset="35%" style="stop-color:#006600;stop-opacity:0.3" />
+      <stop offset="35%" style="stop-color:#FF0000;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#FF0000;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background with subtle Portuguese flag accent -->
+  <circle cx="128" cy="128" r="120" fill="url(#flagAccent)"/>
+
+  <!-- Main dark background -->
+  <circle cx="128" cy="128" r="115" fill="#0f1419"/>
+
+  <!-- Price chart bars (histogram style) showing variable pricing -->
+  <g opacity="0.85">
+    <!-- Bar 1 - Low price -->
+    <rect x="25" y="140" width="15" height="30" fill="#00C853" rx="2"/>
+    <!-- Bar 2 - Medium-low -->
+    <rect x="45" y="125" width="15" height="45" fill="#4CAF50" rx="2"/>
+    <!-- Bar 3 - Medium -->
+    <rect x="65" y="110" width="15" height="60" fill="#8BC34A" rx="2"/>
+    <!-- Bar 4 - Medium-high -->
+    <rect x="85" y="95" width="15" height="75" fill="#FDD835" rx="2"/>
+    <!-- Bar 5 - High -->
+    <rect x="105" y="75" width="15" height="95" fill="#FFB300" rx="2"/>
+    <!-- Bar 6 - Very high -->
+    <rect x="125" y="60" width="15" height="110" fill="#FF8F00" rx="2"/>
+    <!-- Bar 7 - Peak -->
+    <rect x="145" y="50" width="15" height="120" fill="#FF6D00" rx="2"/>
+    <!-- Bar 8 - High again -->
+    <rect x="165" y="70" width="15" height="100" fill="#FF5252" rx="2"/>
+    <!-- Bar 9 - Decreasing -->
+    <rect x="185" y="100" width="15" height="70" fill="#E65100" rx="2"/>
+    <!-- Bar 10 - Low again -->
+    <rect x="205" y="130" width="15" height="40" fill="#66BB6A" rx="2"/>
+  </g>
+
+  <!-- Grid lines for chart background -->
+  <g stroke="#ffffff" stroke-width="1" opacity="0.1">
+    <line x1="20" y1="170" x2="230" y2="170"/>
+    <line x1="20" y1="130" x2="230" y2="130"/>
+    <line x1="20" y1="90" x2="230" y2="90"/>
+    <line x1="20" y1="50" x2="230" y2="50"/>
+  </g>
+
+  <!-- Lightning bolt with glow - representing electricity -->
+  <path d="M 145 180 L 115 225 L 135 225 L 120 260 L 165 215 L 145 215 L 160 180 Z"
+        fill="#FFD700"
+        stroke="#FFA500"
+        stroke-width="2.5"
+        filter="url(#glow)"/>
+
+  <!-- Euro symbol integrated into design -->
+  <g transform="translate(200, 55)">
+    <circle cx="0" cy="0" r="28" fill="#1a1a1a" stroke="#FFD700" stroke-width="3"/>
+    <text x="0" y="0"
+          font-family="Arial, sans-serif"
+          font-size="32"
+          font-weight="bold"
+          fill="#FFD700"
+          text-anchor="middle"
+          dominant-baseline="central">€</text>
+  </g>
+
+  <!-- Upward and downward arrows showing price volatility -->
+  <g opacity="0.6">
+    <!-- Down arrow (lower prices) -->
+    <path d="M 35 195 L 35 210 L 30 205 L 35 210 L 40 205 Z"
+          fill="#00C853"
+          stroke="#00C853"
+          stroke-width="2"/>
+    <!-- Up arrow (higher prices) -->
+    <path d="M 215 195 L 215 210 L 220 205 L 215 200 L 210 205 Z"
+          fill="#FF5252"
+          stroke="#FF5252"
+          stroke-width="2"/>
+  </g>
+
+  <!-- Subtle Portuguese flag accent at bottom -->
+  <rect x="20" y="230" width="216" height="8" rx="4" fill="url(#flagAccent)" opacity="0.5"/>
+</svg>

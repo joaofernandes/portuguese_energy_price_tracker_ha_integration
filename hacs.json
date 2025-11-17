@@ -1,0 +1,6 @@
+{
+  "name": "Portuguese Energy Price Tracker",
+  "render_readme": true,
+  "country": ["PT"],
+  "homeassistant": "2024.1.0"
+}

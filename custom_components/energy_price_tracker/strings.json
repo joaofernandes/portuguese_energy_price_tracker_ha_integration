@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Energy Price Tracker - Select Provider",
+        "description": "Choose your energy provider. There are {provider_count} providers available.",
+        "data": {
+          "provider": "Energy Provider"
+        }
+      },
+      "tariff": {
+        "title": "Energy Price Tracker - Select Tariff",
+        "description": "Choose the tariff type for {provider}. There are {tariff_count} tariffs available.",
+        "data": {
+          "tariff": "Tariff Type"
+        }
+      },
+      "options": {
+        "title": "Energy Price Tracker - Configuration",
+        "description": "Configure the instance for {provider} - {tariff}",
+        "data": {
+          "display_name": "Display Name",
+          "vat": "VAT Rate (%)",
+          "include_vat": "Include VAT in prices"
+        },
+        "data_description": {
+          "display_name": "Friendly name for this price tracker instance",
+          "vat": "VAT rate percentage (0-100)",
+          "include_vat": "When enabled, prices will include VAT. When disabled, prices will be shown without VAT."
+        }
+      }
+    },
+    "error": {
+      "invalid_provider": "Invalid provider selected"
+    },
+    "abort": {
+      "already_configured": "This provider and tariff combination is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Energy Price Tracker - Options",
+        "menu_options": {
+          "configure": "Configure Settings",
+          "restore_data": "Restore Historical Data"
+        }
+      },
+      "configure": {
+        "title": "Energy Price Tracker - Configuration",
+        "description": "Update configuration for this price tracker",
+        "data": {
+          "display_name": "Display Name",
+          "vat": "VAT Rate (%)",
+          "include_vat": "Include VAT in prices"
+        },
+        "data_description": {
+          "display_name": "Friendly name for this price tracker instance",
+          "vat": "VAT rate percentage (0-100)",
+          "include_vat": "When enabled, prices will include VAT. When disabled, prices will be shown without VAT."
+        }
+      },
+      "restore_data": {
+        "title": "Restore Historical Energy Price Data",
+        "description": "Restore historical price data for {provider} - {tariff}. This will fetch data from the API and store it in Home Assistant's statistics database for use in history graphs and energy dashboards.",
+        "data": {
+          "restore_date": "Month to Restore"
+        },
+        "data_description": {
+          "restore_date": "Select the month and year to restore historical data for"
+        }
+      }
+    },
+    "error": {
+      "restore_failed": "Failed to restore historical data. Please check the logs for more information."
+    }
+  }
+}

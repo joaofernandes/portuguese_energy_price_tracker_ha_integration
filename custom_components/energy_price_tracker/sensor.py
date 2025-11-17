@@ -1,0 +1,636 @@
+"""Sensor platform for Energy Price Tracker integration."""
+from __future__ import annotations
+
+from datetime import datetime
+import logging
+from typing import Any
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CURRENCY_EURO, UnitOfEnergy
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+
+from . import EnergyPriceCoordinator
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Energy Price Tracker sensor based on a config entry."""
+    coordinator: EnergyPriceCoordinator = hass.data[DOMAIN][entry.entry_id]
+
+    # Provider-specific sensors
+    sensors = [
+        EnergyPriceCurrentSensor(coordinator, entry),
+        EnergyPriceCurrentVATSensor(coordinator, entry),
+        EnergyPriceTodayMaxSensor(coordinator, entry),
+        EnergyPriceTodayMaxVATSensor(coordinator, entry),
+        EnergyPriceTodayMinSensor(coordinator, entry),
+        EnergyPriceTodayMinVATSensor(coordinator, entry),
+        EnergyPriceAllPricesSensor(coordinator, entry),
+    ]
+
+    # Only create generic routing sensors for the first config entry
+    from homeassistant.helpers import entity_registry as er
+    entity_reg = er.async_get(hass)
+
+    # Check if generic sensors already exist
+    generic_current_id = f"sensor.active_provider_current_price"
+    if entity_reg.async_get(generic_current_id) is None:
+        # Add generic routing sensors
+        sensors.extend([
+            ActiveProviderCurrentSensor(hass),
+            ActiveProviderCurrentVATSensor(hass),
+            ActiveProviderTodayMaxSensor(hass),
+            ActiveProviderTodayMaxVATSensor(hass),
+            ActiveProviderTodayMinSensor(hass),
+            ActiveProviderTodayMinVATSensor(hass),
+            ActiveProviderAllPricesSensor(hass),
+        ])
+
+    async_add_entities(sensors)
+
+
+class EnergyPriceBaseSensor(CoordinatorEntity, SensorEntity):
+    """Base class for Energy Price sensors."""
+
+    def __init__(
+        self,
+        coordinator: EnergyPriceCoordinator,
+        entry: ConfigEntry,
+        sensor_type: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry = entry
+        self._sensor_type = sensor_type
+        self._attr_has_entity_name = True
+
+        # Build unique ID
+        provider = entry.data["provider"]
+        tariff = entry.data["tariff"]
+        self._attr_unique_id = f"{DOMAIN}_{provider}_{tariff}_{sensor_type}".lower().replace(" ", "_")
+
+        # Device info for grouping sensors
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{provider}_{tariff}")},
+            "name": entry.data.get("display_name", f"{provider} {tariff}"),
+            "manufacturer": "Energy Price Tracker",
+            "model": tariff,
+            "entry_type": "service",
+        }
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        return {
+            "provider": self._entry.data["provider"],
+            "tariff": self._entry.data["tariff"],
+            "display_name": self._entry.data.get("display_name", ""),
+        }
+
+
+class EnergyPriceCurrentSensor(EnergyPriceBaseSensor):
+    """Sensor for current energy price (no VAT)."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "current_price")
+        self._attr_name = "Current Price"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current price."""
+        if not self.coordinator.data:
+            return None
+
+        current_price = self.coordinator.data.get("current_price")
+        if current_price is None:
+            return None
+
+        if current_price and "price" in current_price and current_price["price"] is not None:
+            return round(float(current_price["price"]), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+
+        if self.coordinator.data:
+            current_price = self.coordinator.data.get("current_price", {})
+            if "period" in current_price:
+                attrs["period"] = current_price["period"]
+
+        return attrs
+
+
+class EnergyPriceCurrentVATSensor(EnergyPriceBaseSensor):
+    """Sensor for current energy price (with VAT)."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "current_price_vat")
+        self._attr_name = "Current Price with VAT"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current price with VAT."""
+        if not self.coordinator.data:
+            return None
+
+        current_price = self.coordinator.data.get("current_price")
+        if current_price is None:
+            return None
+
+        if current_price and "price_w_vat" in current_price and current_price["price_w_vat"] is not None:
+            return round(float(current_price["price_w_vat"]), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["vat_included"] = True
+
+        if self.coordinator.data:
+            current_price = self.coordinator.data.get("current_price", {})
+            if "period" in current_price:
+                attrs["period"] = current_price["period"]
+
+        return attrs
+
+
+class EnergyPriceTodayMaxSensor(EnergyPriceBaseSensor):
+    """Sensor for today's maximum energy price."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "today_max_price")
+        self._attr_name = "Today's Maximum Price"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's maximum price."""
+        if not self.coordinator.data:
+            return None
+
+        today_max = self.coordinator.data.get("today_max_price")
+        if today_max is not None:
+            return round(float(today_max), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["period"] = "today"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTodayMaxVATSensor(EnergyPriceBaseSensor):
+    """Sensor for today's maximum energy price with VAT."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "today_max_price_vat")
+        self._attr_name = "Today's Maximum Price with VAT"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's maximum price with VAT."""
+        if not self.coordinator.data:
+            return None
+
+        today_max_vat = self.coordinator.data.get("today_max_price_vat")
+        if today_max_vat is not None:
+            return round(float(today_max_vat), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["vat_included"] = True
+        attrs["period"] = "today"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTodayMinSensor(EnergyPriceBaseSensor):
+    """Sensor for today's minimum energy price."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "today_min_price")
+        self._attr_name = "Today's Minimum Price"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's minimum price."""
+        if not self.coordinator.data:
+            return None
+
+        today_min = self.coordinator.data.get("today_min_price")
+        if today_min is not None:
+            return round(float(today_min), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["period"] = "today"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTodayMinVATSensor(EnergyPriceBaseSensor):
+    """Sensor for today's minimum energy price with VAT."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "today_min_price_vat")
+        self._attr_name = "Today's Minimum Price with VAT"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's minimum price with VAT."""
+        if not self.coordinator.data:
+            return None
+
+        today_min_vat = self.coordinator.data.get("today_min_price_vat")
+        if today_min_vat is not None:
+            return round(float(today_min_vat), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["vat_included"] = True
+        attrs["period"] = "today"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceAllPricesSensor(EnergyPriceBaseSensor):
+    """Sensor containing all price datapoints fetched from API."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "all_prices")
+        self._attr_name = "All Prices"
+        self._attr_icon = "mdi:chart-line"
+
+    @property
+    def native_value(self) -> int:
+        """Return the count of available price points."""
+        if not self.coordinator.data:
+            return 0
+
+        prices = self.coordinator.data.get("prices", [])
+        return len(prices)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return today's price datapoints as attributes (to avoid exceeding 16KB DB limit)."""
+        from homeassistant.util import dt as dt_util
+
+        attrs = super().extra_state_attributes
+
+        if self.coordinator.data:
+            all_prices = self.coordinator.data.get("prices", [])
+
+            # Filter to only today's prices to stay under 16KB limit
+            today = dt_util.now().date()
+            today_prices = []
+            for p in all_prices:
+                dt_obj = datetime.fromisoformat(p["datetime"])
+                if dt_obj.date() == today:
+                    # Strip timezone from datetime string for compatibility with automations
+                    price_entry = p.copy()
+                    price_entry["datetime"] = dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
+                    today_prices.append(price_entry)
+
+            attrs["prices"] = today_prices
+            attrs["data_points_today"] = len(today_prices)
+            attrs["data_points_total"] = len(all_prices)
+            attrs["last_update"] = datetime.now().isoformat()
+
+            # Add first and last timestamp for today's data
+            if today_prices:
+                attrs["first_timestamp"] = today_prices[0].get("datetime")
+                attrs["last_timestamp"] = today_prices[-1].get("datetime")
+
+            # Note about historical data
+            if len(all_prices) > len(today_prices):
+                attrs["note"] = "Only today's prices shown in attributes. Use refresh_data service for historical data."
+
+        return attrs
+
+
+# ============================================================================
+# GENERIC ROUTING SENSORS (Route to active provider)
+# ============================================================================
+
+
+class ActiveProviderBaseSensor(SensorEntity):
+    """Base class for active provider routing sensors."""
+
+    def __init__(self, hass: HomeAssistant, sensor_type: str, name: str) -> None:
+        """Initialize the sensor."""
+        self._hass = hass
+        self._sensor_type = sensor_type
+        self._attr_name = name
+        self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
+        self._attr_has_entity_name = False
+        self._attr_should_poll = False
+
+    def _get_active_provider_entity(self, suffix: str) -> str | None:
+        """Get the entity ID for the active provider's sensor."""
+        # Get active provider from select entity
+        select_entity_id = f"select.{DOMAIN}_active_provider"
+        active_provider = self._hass.states.get(select_entity_id)
+
+        if not active_provider or not active_provider.state:
+            return None
+
+        provider_name = active_provider.state
+
+        # Handle empty configuration case
+        if provider_name == "No providers configured":
+            return None
+
+        # Convert display name to entity ID format (lowercase, replace spaces with underscores)
+        provider_slug = provider_name.lower().replace(" ", "_")
+
+        return f"sensor.{provider_slug}_{suffix}"
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to provider sensor and select changes."""
+        await super().async_added_to_hass()
+
+        # Track select entity changes
+        select_entity_id = f"select.{DOMAIN}_active_provider"
+
+        @callback
+        def _update_callback(event=None):
+            """Update when provider changes or provider sensor updates."""
+            self.async_schedule_update_ha_state(force_refresh=False)
+
+        # Subscribe to select changes
+        self.async_on_remove(
+            self._hass.bus.async_listen("state_changed", _update_callback)
+        )
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        entity_id = self._get_active_provider_entity("current_price")
+        # Sensor is available only if we have a valid provider entity
+        return entity_id is not None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        select_entity_id = f"select.{DOMAIN}_active_provider"
+        active_provider_state = self._hass.states.get(select_entity_id)
+
+        attrs = {
+            "active_provider": active_provider_state.state if active_provider_state else None,
+            "integration": DOMAIN,
+        }
+
+        # Add helpful message when no providers configured
+        if active_provider_state and active_provider_state.state == "No providers configured":
+            attrs["info"] = "Please configure a provider via Settings > Devices & Services"
+
+        return attrs
+
+
+class ActiveProviderCurrentSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's current price (no VAT)."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "current_price", "Active Provider Current Price")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current price from active provider."""
+        entity_id = self._get_active_provider_entity("current_price")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderCurrentVATSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's current price with VAT."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "current_price_with_vat", "Active Provider Current Price with VAT")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the current price with VAT from active provider."""
+        entity_id = self._get_active_provider_entity("current_price_with_vat")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTodayMaxSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's today max price."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "today_max_price", "Active Provider Today Max Price")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's max price from active provider."""
+        entity_id = self._get_active_provider_entity("today_s_maximum_price")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTodayMaxVATSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's today max price with VAT."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "today_max_price_with_vat", "Active Provider Today Max Price with VAT")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's max price with VAT from active provider."""
+        entity_id = self._get_active_provider_entity("today_s_maximum_price_with_vat")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTodayMinSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's today min price."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "today_min_price", "Active Provider Today Min Price")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's min price from active provider."""
+        entity_id = self._get_active_provider_entity("today_s_minimum_price")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTodayMinVATSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's today min price with VAT."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "today_min_price_with_vat", "Active Provider Today Min Price with VAT")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's min price with VAT from active provider."""
+        entity_id = self._get_active_provider_entity("today_s_minimum_price_with_vat")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderAllPricesSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's all prices."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "all_prices", "Active Provider All Prices")
+        self._attr_icon = "mdi:chart-line"
+
+    @property
+    def native_value(self) -> int:
+        """Return the count of price points from active provider."""
+        entity_id = self._get_active_provider_entity("all_prices")
+        if not entity_id:
+            return 0
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return int(state.state)
+            except (ValueError, TypeError):
+                return 0
+        return 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes including prices array."""
+        attrs = super().extra_state_attributes
+
+        entity_id = self._get_active_provider_entity("all_prices")
+        if entity_id:
+            state = self._hass.states.get(entity_id)
+            if state and state.attributes:
+                # Copy prices and metadata from provider sensor
+                if "prices" in state.attributes:
+                    attrs["prices"] = state.attributes["prices"]
+                if "data_points_today" in state.attributes:
+                    attrs["data_points_today"] = state.attributes["data_points_today"]
+                if "data_points_total" in state.attributes:
+                    attrs["data_points_total"] = state.attributes["data_points_total"]
+                if "first_timestamp" in state.attributes:
+                    attrs["first_timestamp"] = state.attributes["first_timestamp"]
+                if "last_timestamp" in state.attributes:
+                    attrs["last_timestamp"] = state.attributes["last_timestamp"]
+
+        return attrs

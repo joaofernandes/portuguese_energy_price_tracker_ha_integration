@@ -1,0 +1,13 @@
+# Services for Energy Price Tracker integration
+
+refresh_data:
+  name: Refresh Energy Price Data
+  description: Manually refresh energy price data from GitHub CSV. Can optionally specify a date to fetch historical data.
+  fields:
+    date:
+      name: Date
+      description: Optional date to fetch data for (YYYY-MM-DD format). If not specified, fetches today's data. Always bypasses cache.
+      required: false
+      example: "2025-11-16"
+      selector:
+        date:
