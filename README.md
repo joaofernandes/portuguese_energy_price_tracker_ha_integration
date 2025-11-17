@@ -242,9 +242,25 @@ Contributions are welcome! Please:
 
 ## Credits
 
-- **Data Source**: [Tiago Felícia's Price Data](https://github.com/tiagofelicia/tiagofelicia.github.io)
-- **CSV Format**: Maintained by the Portuguese energy community
-- **Integration**: Built for Home Assistant community
+This integration would not be possible without the amazing work of **[Tiago Felícia](https://github.com/tiagofelicia)**, who maintains the comprehensive Portuguese energy price dataset at [tiagofelicia.github.io](https://github.com/tiagofelicia/tiagofelicia.github.io).
+
+**Special thanks to Tiago Felícia for:**
+
+- Collecting and maintaining accurate hourly energy price data for multiple Portuguese providers
+- Providing the data in an accessible CSV format updated daily via GitHub
+- Making this data freely available to the community
+- Enabling developers to build tools like this integration
+
+The upstream data source can be found at: <https://github.com/tiagofelicia/tiagofelicia.github.io>
+
+**Data Providers Included:**
+
+- Coopérnico GO
+- G9 Smart Dynamic
+- Alfa Power Index
+- And more Portuguese energy providers
+
+Without Tiago's dedication to maintaining this data, this Home Assistant integration would not exist. Please consider starring his repository and supporting his work!
 
 ## License
 
