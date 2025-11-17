@@ -54,6 +54,30 @@ A Home Assistant custom integration that tracks real-time electricity prices for
 
 You can add multiple instances for different providers or tariffs. Each instance creates its own set of sensors with unique entity IDs based on the provider and tariff.
 
+### Managing Configurations
+
+**Add a new provider:**
+1. Go to **Settings** → **Devices & Services**
+2. Click **+ Add Integration**
+3. Search for "Portuguese Energy Price Tracker"
+4. Follow the configuration flow
+
+**Edit a provider:**
+1. Go to **Settings** → **Devices & Services**
+2. Find "Portuguese Energy Price Tracker"
+3. Click on the provider instance you want to edit
+4. Click **Configure**
+5. Update settings (Display Name, VAT Rate)
+
+**Delete a provider:**
+1. Go to **Settings** → **Devices & Services**
+2. Find "Portuguese Energy Price Tracker"
+3. Click on the provider instance you want to remove
+4. Click the **three-dot menu** (⋮) → **Delete**
+5. Confirm deletion
+
+*Note: Deleting a provider will remove all its sensors. CSV cache files are shared between all providers and will remain for use by other configured instances.*
+
 ## Sensors Created
 
 The integration creates two types of sensors:

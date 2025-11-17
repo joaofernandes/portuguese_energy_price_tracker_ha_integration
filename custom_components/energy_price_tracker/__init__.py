@@ -111,6 +111,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+async def async_remove_entry(_hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle removal of an entry.
+
+    Note: CSV cache files are shared between all providers/tariffs and are
+    date-based (prices_YYYY-MM-DD.csv), so they are NOT deleted when a
+    provider is removed. They will be cleaned up naturally as they age.
+    """
+    _LOGGER.info(
+        f"Removed config entry for {entry.data.get('provider')} - "
+        f"{entry.data.get('tariff')} ({entry.title})"
+    )
+
+
 class EnergyPriceCoordinator(DataUpdateCoordinator):
     """Class to manage fetching energy price data from GitHub CSV."""
 

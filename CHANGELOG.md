@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Config entry removal handler (`async_remove_entry`) with proper logging
+- Documentation for managing configurations (add, edit, delete) in README
+
+### Changed
+- CSV cache files are now properly shared between all providers (date-based naming)
+- Cache files are NOT deleted when removing a provider (as they're shared by all instances)
+- Simplified GitHub Actions validation to only use Hassfest (removed HACS-specific checks)
+- Updated documentation to reflect custom repository approach
+
 ## [2.0.0] - 2025-11-17
 
 ### Changed
