@@ -82,15 +82,6 @@ class EnergyPriceBaseSensor(CoordinatorEntity, SensorEntity):
         tariff = entry.data["tariff"]
         self._attr_unique_id = f"{DOMAIN}_{provider}_{tariff}_{sensor_type}".lower().replace(" ", "_")
 
-        # Device info for grouping sensors
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{provider}_{tariff}")},
-            "name": entry.data.get("display_name", f"{provider} {tariff}"),
-            "manufacturer": "Energy Price Tracker",
-            "model": tariff,
-            "entry_type": "service",
-        }
-
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""

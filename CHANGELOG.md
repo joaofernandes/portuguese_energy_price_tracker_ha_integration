@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Increased data points from 24 to 96 per day (4 intervals per hour)
   - Provides higher granularity for accurate time-of-use optimization
   - No data loss from averaging - users see actual 15-minute pricing
+- **Simplified configuration**: Removed options flow (configure/restore data menu)
+  - VAT configuration remains at initial setup only (per provider/tariff)
+  - Removed unnecessary post-configuration options menu
+  - Removed historical data restore UI (data fetches automatically as needed)
+- **Removed device grouping**: Each provider/tariff combination is now completely independent
+  - Allows deleting individual tariffs without affecting other tariffs from same provider
+  - Each config entry shows directly in integration list for easier management
+  - No more nested device hierarchy - flat structure for better UX
 - CSV cache files are now properly shared between all providers (date-based naming)
 - Cache files are NOT deleted when removing a provider (as they're shared by all instances)
 - Simplified GitHub Actions validation to only use Hassfest (removed HACS-specific checks)
