@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'custom_components/energy_price_tracker/manifest.json'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Create Release
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from manifest
+        id: version
+        run: |
+          VERSION=$(grep '"version"' custom_components/energy_price_tracker/manifest.json | cut -d'"' -f4)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract changelog for this version
+        if: steps.check_tag.outputs.exists == 'false'
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          # Extract the changelog section for this version
+          python3 << 'EOF' > release_notes.md
+          import re
+          import sys
+
+          version = "${{ steps.version.outputs.version }}"
+
+          try:
+              with open('CHANGELOG.md', 'r') as f:
+                  content = f.read()
+
+              # Find the section for this version
+              # Pattern: ## [version] - date
+              pattern = rf'## \[{re.escape(version)}\].*?\n(.*?)(?=\n## \[|$)'
+              match = re.search(pattern, content, re.DOTALL)
+
+              if match:
+                  changelog = match.group(1).strip()
+
+                  # Add footer with attribution
+                  footer = f"""
+
+          ---
+
+          **Installation via HACS:**
+          1. Go to HACS → Integrations
+          2. Click three dots → Custom repositories
+          3. Add: `joaofernandes/portuguese_energy_price_tracker_ha_integration`
+          4. Category: Integration
+          5. Install and restart Home Assistant
+
+          **Credits:**
+          Data provided by [Tiago Felícia](https://github.com/tiagofelicia/tiagofelicia.github.io)
+          """
+
+                  print(changelog + footer)
+              else:
+                  print(f"# Version {version}\n\nNo changelog entry found for this version.")
+          except Exception as e:
+              print(f"# Version {version}\n\nError extracting changelog: {str(e)}")
+          EOF
+
+      - name: Create and push tag
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Create GitHub Release
+        if: steps.check_tag.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release already exists
+        if: steps.check_tag.outputs.exists == 'true'
+        run: |
+          echo "::notice::Release ${{ steps.version.outputs.tag }} already exists, skipping"

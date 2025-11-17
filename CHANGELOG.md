@@ -10,12 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Config entry removal handler (`async_remove_entry`) with proper logging
 - Documentation for managing configurations (add, edit, delete) in README
+- Automated release workflow (`.github/workflows/release.yml`)
+- Release preparation script (`scripts/prepare_release.py`)
+- Automatic GitHub release creation with changelog extraction
 
 ### Changed
 - CSV cache files are now properly shared between all providers (date-based naming)
 - Cache files are NOT deleted when removing a provider (as they're shared by all instances)
 - Simplified GitHub Actions validation to only use Hassfest (removed HACS-specific checks)
 - Updated documentation to reflect custom repository approach
+- Streamlined release process with automation (no manual tagging needed)
 
 ## [2.0.0] - 2025-11-17
 
