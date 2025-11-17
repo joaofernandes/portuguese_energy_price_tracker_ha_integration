@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'custom_components/energy_price_tracker/manifest.json'
 
 jobs:
   release:
@@ -20,7 +18,26 @@ jobs:
       - name: Get version from manifest
         id: version
         run: |
-          VERSION=$(grep '"version"' custom_components/energy_price_tracker/manifest.json | cut -d'"' -f4)
+          # Get base version from manifest
+          BASE_VERSION=$(grep '"version"' custom_components/energy_price_tracker/manifest.json | cut -d'"' -f4)
+
+          # Get latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LATEST_VERSION=${LATEST_TAG#v}
+
+          # If manifest version hasn't changed, auto-increment patch version
+          if [ "$BASE_VERSION" = "$LATEST_VERSION" ]; then
+            # Split version into parts
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
+            # Increment patch version
+            PATCH=$((PATCH + 1))
+            VERSION="${MAJOR}.${MINOR}.${PATCH}"
+            echo "Auto-incremented version from $BASE_VERSION to $VERSION"
+          else
+            VERSION="$BASE_VERSION"
+            echo "Using manifest version: $VERSION"
+          fi
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
 
