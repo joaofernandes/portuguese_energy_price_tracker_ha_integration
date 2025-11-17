@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic GitHub release creation with changelog extraction
 
 ### Changed
+- **IMPORTANT**: Removed hourly aggregation - now exposes native 15-minute intervals from CSV source
+  - Increased data points from 24 to 96 per day (4 intervals per hour)
+  - Provides higher granularity for accurate time-of-use optimization
+  - No data loss from averaging - users see actual 15-minute pricing
 - CSV cache files are now properly shared between all providers (date-based naming)
 - Cache files are NOT deleted when removing a provider (as they're shared by all instances)
 - Simplified GitHub Actions validation to only use Hassfest (removed HACS-specific checks)
@@ -27,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: Complete rewrite to fetch data directly from GitHub CSV instead of intermediate API
 - Changed data source from `energy.bogos.me` API to direct GitHub CSV access
 - Improved data reliability with direct source access
-- Changed from 15-minute intervals to hourly aggregated prices
 - Updated SCAN_INTERVAL to 5 minutes (300 seconds) for better responsiveness
 
 ### Added
@@ -42,7 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Direct CSV fetching from GitHub with retry logic and exponential backoff
 - Local file caching system for offline access (1-hour cache TTL)
 - Historical data support via Git commit history
-- Automatic hourly aggregation from 15-minute CSV intervals
 - UTF-8 BOM handling for proper CSV parsing
 - Timezone-aware datetime handling throughout the integration
 - `energy_price_tracker.refresh_data` service with optional date parameter
