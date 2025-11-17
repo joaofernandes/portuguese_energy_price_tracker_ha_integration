@@ -290,48 +290,6 @@ class CSVDataFetcher:
         _LOGGER.info(f"Parsed {len(prices)} price entries for {provider} - {tariff_csv}")
         return prices
 
-    def aggregate_to_hourly(self, prices: list[dict]) -> list[dict]:
-        """Aggregate 15-minute intervals to hourly prices (average)."""
-        from collections import defaultdict
-
-        hourly_data = defaultdict(lambda: {"prices": [], "prices_vat": [], "intervals": []})
-
-        for price in prices:
-            try:
-                dt = datetime.fromisoformat(price["datetime"])
-                # Round to hour
-                hour_key = dt.replace(minute=0, second=0, microsecond=0)
-
-                hourly_data[hour_key]["prices"].append(price["price"])
-                hourly_data[hour_key]["prices_vat"].append(price["price_w_vat"])
-                hourly_data[hour_key]["intervals"].append(price["interval"])
-
-            except (ValueError, KeyError) as err:
-                _LOGGER.warning(f"Error aggregating price: {err}")
-                continue
-
-        # Calculate averages
-        hourly_prices = []
-        for hour_dt, data in sorted(hourly_data.items()):
-            avg_price = sum(data["prices"]) / len(data["prices"])
-            avg_price_vat = sum(data["prices_vat"]) / len(data["prices_vat"])
-
-            # Create interval string from first and last
-            first_interval = data["intervals"][0]
-            last_interval = data["intervals"][-1]
-            start_time = first_interval.split("-")[0].strip("[ ")
-            end_time = last_interval.split("-")[1].strip("] ")
-            interval_str = f"[{start_time}-{end_time}["
-
-            hourly_prices.append({
-                "datetime": hour_dt.isoformat(),
-                "interval": interval_str,
-                "price": round(avg_price, 5),
-                "price_w_vat": round(avg_price_vat, 5),
-            })
-
-        _LOGGER.debug(f"Aggregated to {len(hourly_prices)} hourly price entries")
-        return hourly_prices
 
     async def get_prices(
         self,
@@ -388,13 +346,10 @@ class CSVDataFetcher:
         # Parse CSV
         prices = self.parse_csv(csv_content, provider, tariff, vat_rate)
 
-        # Aggregate to hourly
-        hourly_prices = self.aggregate_to_hourly(prices)
-
         # Cache the result
         if date_key not in self.cache._cache:
             self.cache._cache[date_key] = {}
-        self.cache._cache[date_key][f"{provider}_{tariff}"] = hourly_prices
+        self.cache._cache[date_key][f"{provider}_{tariff}"] = prices
         self.cache._cache_times[date_key] = datetime.now()
 
-        return hourly_prices
+        return prices
