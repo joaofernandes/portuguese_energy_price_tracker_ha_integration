@@ -1,4 +1,15 @@
-"""CSV Data Fetcher for Energy Price Tracker."""
+"""CSV Data Fetcher for Energy Price Tracker.
+
+This module fetches Portuguese energy price data from Tiago Felícia's repository.
+
+Data Source Credits:
+    The data is maintained by Tiago Felícia at:
+    https://github.com/tiagofelicia/tiagofelicia.github.io
+
+    Special thanks to Tiago Felícia for collecting and maintaining accurate
+    hourly energy price data for multiple Portuguese providers and making it
+    freely available to the community.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -14,7 +25,8 @@ from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
-# GitHub URLs
+# Data source: Tiago Felícia's Portuguese Energy Price Data
+# Repository: https://github.com/tiagofelicia/tiagofelicia.github.io
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tiagofelicia/tiagofelicia.github.io"
 GITHUB_API_BASE = "https://api.github.com/repos/tiagofelicia/tiagofelicia.github.io"
 CSV_FILE_PATH = "data/precos-horarios.csv"

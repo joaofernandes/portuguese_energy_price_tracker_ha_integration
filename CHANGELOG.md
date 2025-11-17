@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fallback to local cache if offline
 - Minimal disk space usage: ~500 KB per day for local cache
 
+### Credits
+- **Data Source**: Special thanks to **[Tiago Felícia](https://github.com/tiagofelicia)** for maintaining the comprehensive Portuguese energy price dataset at [tiagofelicia.github.io](https://github.com/tiagofelicia/tiagofelicia.github.io). This integration would not be possible without his dedication to collecting and providing accurate hourly energy price data for the Portuguese community.
+
 ## [1.1.0] - 2025-11-14
 
 ### Added
