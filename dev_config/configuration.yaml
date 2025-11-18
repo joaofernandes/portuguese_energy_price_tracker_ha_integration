@@ -18,9 +18,9 @@ default_config:
 logger:
   default: info
   logs:
-    custom_components.energy_price_tracker: debug
-    custom_components.energy_price_tracker.sensor: debug
-    custom_components.energy_price_tracker.select: debug
+    custom_components.portuguese_energy_price_tracker: debug
+    custom_components.portuguese_energy_price_tracker.sensor: debug
+    custom_components.portuguese_energy_price_tracker.select: debug
 
 # Enable recorder with persistent database
 recorder:

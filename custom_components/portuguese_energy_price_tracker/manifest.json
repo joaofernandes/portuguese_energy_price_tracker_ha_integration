@@ -1,5 +1,5 @@
 {
-  "domain": "energy_price_tracker",
+  "domain": "portuguese_energy_price_tracker",
   "name": "Portuguese Energy Price Tracker",
   "codeowners": ["@joaofernandes"],
   "config_flow": true,

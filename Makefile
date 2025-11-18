@@ -26,16 +26,16 @@ dev-logs: ## Follow logs from Home Assistant
 	docker-compose logs -f
 
 dev-logs-integration: ## Follow integration-specific logs
-	docker-compose logs -f | grep --line-buffered energy_price_tracker
+	docker-compose logs -f | grep --line-buffered portuguese_energy_price_tracker
 
 dev-clean: ## Stop and remove all containers, volumes, and dev data
 	@echo "Cleaning development environment..."
 	docker-compose down -v
-	rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log custom_components/energy_price_tracker/data/
+	rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log custom_components/portuguese_energy_price_tracker/data/
 	@echo "Development environment cleaned"
 
 dev-shell: ## Open a shell in the Home Assistant container
-	docker exec -it energy_price_tracker_dev bash
+	docker exec -it portuguese_energy_price_tracker_dev bash
 
 dev-rebuild: ## Rebuild and restart containers
 	@echo "Rebuilding containers..."
