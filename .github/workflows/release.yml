@@ -21,7 +21,7 @@ jobs:
         id: version
         run: |
           # Get base version from manifest
-          BASE_VERSION=$(grep '"version"' custom_components/energy_price_tracker/manifest.json | cut -d'"' -f4)
+          BASE_VERSION=$(grep '"version"' custom_components/portuguese_energy_price_tracker/manifest.json | cut -d'"' -f4)
 
           # Get latest tag
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
