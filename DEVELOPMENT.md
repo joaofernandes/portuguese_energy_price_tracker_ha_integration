@@ -145,12 +145,16 @@ data:
 │   ├── sensor.py                            # Sensor entities
 │   ├── select.py                            # Select entity
 │   ├── config_flow.py                       # Configuration UI
-│   └── manifest.json                        # Integration metadata
+│   ├── manifest.json                        # Integration metadata
+│   └── data/                                # Cache files (CSV data)
 ├── dev_config/                              # Development HA config
 │   └── configuration.yaml                   # HA configuration
 ├── docker-compose.yml                       # Docker setup
 └── DEVELOPMENT.md                           # This file
 ```
+
+**Note**: The integration directory is mounted with write permissions to allow
+cache files to be stored in the `data/` subdirectory.
 
 ## Tips
 
@@ -174,8 +178,8 @@ To start fresh with clean state:
 # Stop and remove containers/volumes
 docker-compose down -v
 
-# Remove dev_config (except configuration.yaml)
-rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log
+# Remove dev_config (except configuration.yaml) and integration cache
+rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log custom_components/energy_price_tracker/data/
 
 # Start again
 docker-compose up -d

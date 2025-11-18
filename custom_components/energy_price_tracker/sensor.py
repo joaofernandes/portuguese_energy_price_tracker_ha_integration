@@ -12,7 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CURRENCY_EURO, UnitOfEnergy
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -41,13 +41,13 @@ async def async_setup_entry(
         EnergyPriceAllPricesSensor(coordinator, entry),
     ]
 
-    # Only create generic routing sensors for the first config entry
-    from homeassistant.helpers import entity_registry as er
-    entity_reg = er.async_get(hass)
+    # Check if this is the first config entry to add generic routing sensors
+    # We always create the sensor objects, but only for the first entry
+    config_entries = hass.config_entries.async_entries(DOMAIN)
+    is_first_entry = len(config_entries) > 0 and config_entries[0].entry_id == entry.entry_id
 
-    # Check if generic sensors already exist
-    generic_current_id = f"sensor.active_provider_current_price"
-    if entity_reg.async_get(generic_current_id) is None:
+    if is_first_entry:
+        _LOGGER.debug(f"Adding generic routing sensors for first config entry")
         # Add generic routing sensors
         sensors.extend([
             ActiveProviderCurrentSensor(hass),
@@ -81,6 +81,24 @@ class EnergyPriceBaseSensor(CoordinatorEntity, SensorEntity):
         provider = entry.data["provider"]
         tariff = entry.data["tariff"]
         self._attr_unique_id = f"{DOMAIN}_{provider}_{tariff}_{sensor_type}".lower().replace(" ", "_")
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device info for grouping entities."""
+        provider = self._entry.data["provider"]
+        tariff = self._entry.data["tariff"]
+        display_name = self._entry.data.get("display_name", f"{provider} {tariff}")
+
+        # Create device identifier using provider+tariff slug
+        device_id = f"{provider}_{tariff}".lower().replace(" ", "_")
+
+        return {
+            "identifiers": {(DOMAIN, device_id)},
+            "name": display_name,
+            "manufacturer": "Portuguese Energy Price Tracker",
+            "model": provider,
+            "entry_type": "service",
+        }
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -371,7 +389,7 @@ class ActiveProviderBaseSensor(SensorEntity):
     def _get_active_provider_entity(self, suffix: str) -> str | None:
         """Get the entity ID for the active provider's sensor."""
         # Get active provider from select entity
-        select_entity_id = "select.active_provider"
+        select_entity_id = "select.active_energy_provider"
         active_provider = self._hass.states.get(select_entity_id)
 
         if not active_provider or not active_provider.state:
@@ -395,10 +413,10 @@ class ActiveProviderBaseSensor(SensorEntity):
             if hasattr(coordinator, "display_name"):
                 _LOGGER.debug(f"  Found coordinator with display_name: {coordinator.display_name}")
                 if coordinator.display_name == selected_display_name:
-                    # Found the matching coordinator, build entity ID from provider + tariff
-                    provider = coordinator.provider.lower().replace(" ", "_")
-                    tariff = coordinator.tariff.lower().replace(" ", "_")
-                    entity_id = f"sensor.{provider}_{tariff}_{suffix}"
+                    # Found the matching coordinator, build entity ID from display_name
+                    # The display_name is already in slug format (e.g., "G9_bihorario_semanal")
+                    display_slug = selected_display_name.lower()
+                    entity_id = f"sensor.{display_slug}_{suffix}"
                     _LOGGER.debug(f"Matched! Built entity_id: {entity_id}")
                     return entity_id
 
@@ -410,7 +428,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         await super().async_added_to_hass()
 
         # Track select entity changes
-        select_entity_id = "select.active_provider"
+        select_entity_id = "select.active_energy_provider"
 
         @callback
         def _update_callback(event=None):
@@ -422,6 +440,9 @@ class ActiveProviderBaseSensor(SensorEntity):
             self._hass.bus.async_listen("state_changed", _update_callback)
         )
 
+        # Trigger initial state update
+        self.async_schedule_update_ha_state(force_refresh=True)
+
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
@@ -432,7 +453,7 @@ class ActiveProviderBaseSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        select_entity_id = "select.active_provider"
+        select_entity_id = "select.active_energy_provider"
         active_provider_state = self._hass.states.get(select_entity_id)
 
         attrs = {

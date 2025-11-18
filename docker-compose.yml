@@ -5,8 +5,8 @@ services:
     container_name: energy_price_tracker_dev
     image: ghcr.io/home-assistant/home-assistant:stable
     volumes:
-      # Mount the integration directly into HA custom_components
-      - ./custom_components/energy_price_tracker:/config/custom_components/energy_price_tracker:ro
+      # Mount the integration directly into HA custom_components (writable for cache files)
+      - ./custom_components/energy_price_tracker:/config/custom_components/energy_price_tracker
       # Persistent HA config directory
       - ./dev_config:/config
     environment:

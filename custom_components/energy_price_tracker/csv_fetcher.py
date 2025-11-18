@@ -22,6 +22,7 @@ from typing import Any
 
 import aiohttp
 from homeassistant.util import dt as dt_util
+from homeassistant.util.file import write_utf8_file
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -171,15 +172,15 @@ class CSVDataFetcher:
         except Exception as err:
             raise Exception(f"Error fetching historical CSV: {err}")
 
-    def save_to_local(self, date: datetime, content: str):
+    async def save_to_local(self, date: datetime, content: str):
         """Save CSV content to local file."""
         date_str = date.strftime("%Y-%m-%d")
         file_path = self.data_dir / f"prices_{date_str}.csv"
 
-        file_path.write_text(content, encoding="utf-8")
+        await write_utf8_file(str(file_path), content)
         _LOGGER.debug(f"Saved CSV to local file: {file_path}")
 
-    def load_from_local(self, date: datetime) -> str | None:
+    async def load_from_local(self, date: datetime) -> str | None:
         """Load CSV content from local file."""
         date_str = date.strftime("%Y-%m-%d")
         file_path = self.data_dir / f"prices_{date_str}.csv"
@@ -187,7 +188,10 @@ class CSVDataFetcher:
         if not file_path.exists():
             return None
 
-        content = file_path.read_text(encoding="utf-8")
+        def _read_file():
+            return file_path.read_text(encoding="utf-8")
+
+        content = await asyncio.to_thread(_read_file)
 
         # Remove BOM if present (in case cached files have it)
         if content.startswith('\ufeff'):
@@ -327,7 +331,7 @@ class CSVDataFetcher:
         # Try loading from local file first
         csv_content = None
         if not bypass_cache:
-            csv_content = self.load_from_local(target_date)
+            csv_content = await self.load_from_local(target_date)
 
         # Fetch from GitHub if not in local cache
         if csv_content is None:
@@ -341,7 +345,7 @@ class CSVDataFetcher:
                 csv_content = await self.fetch_historical_csv(target_date)
 
             # Save to local
-            self.save_to_local(target_date, csv_content)
+            await self.save_to_local(target_date, csv_content)
 
         # Parse CSV
         prices = self.parse_csv(csv_content, provider, tariff, vat_rate)

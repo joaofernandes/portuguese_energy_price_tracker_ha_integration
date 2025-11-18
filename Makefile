@@ -31,7 +31,7 @@ dev-logs-integration: ## Follow integration-specific logs
 dev-clean: ## Stop and remove all containers, volumes, and dev data
 	@echo "Cleaning development environment..."
 	docker-compose down -v
-	rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log
+	rm -rf dev_config/.storage dev_config/*.db* dev_config/*.log custom_components/energy_price_tracker/data/
 	@echo "Development environment cleaned"
 
 dev-shell: ## Open a shell in the Home Assistant container

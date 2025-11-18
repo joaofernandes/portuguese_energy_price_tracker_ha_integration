@@ -22,9 +22,8 @@ logger:
     custom_components.energy_price_tracker.sensor: debug
     custom_components.energy_price_tracker.select: debug
 
-# Enable recorder with in-memory database for faster testing
+# Enable recorder with persistent database
 recorder:
-  db_url: sqlite:///:memory:
   purge_keep_days: 1
 
 # Enable history

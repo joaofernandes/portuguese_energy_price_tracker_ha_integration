@@ -27,6 +27,7 @@ Thumbs.db
 
 # Integration specific
 custom_components/energy_price_tracker/data/*.csv
+custom_components/energy_price_tracker/data/
 
 # Docker development environment
 dev_config/
