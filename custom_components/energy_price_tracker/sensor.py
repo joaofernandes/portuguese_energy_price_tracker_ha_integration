@@ -364,14 +364,14 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._hass = hass
         self._sensor_type = sensor_type
         self._attr_name = name
-        self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
+        self._attr_unique_id = f"active_provider_{sensor_type}"
         self._attr_has_entity_name = False
         self._attr_should_poll = False
 
     def _get_active_provider_entity(self, suffix: str) -> str | None:
         """Get the entity ID for the active provider's sensor."""
         # Get active provider from select entity
-        select_entity_id = f"select.{DOMAIN}_active_provider"
+        select_entity_id = "select.active_provider"
         active_provider = self._hass.states.get(select_entity_id)
 
         if not active_provider or not active_provider.state:
@@ -393,7 +393,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         await super().async_added_to_hass()
 
         # Track select entity changes
-        select_entity_id = f"select.{DOMAIN}_active_provider"
+        select_entity_id = "select.active_provider"
 
         @callback
         def _update_callback(event=None):
@@ -415,7 +415,7 @@ class ActiveProviderBaseSensor(SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        select_entity_id = f"select.{DOMAIN}_active_provider"
+        select_entity_id = "select.active_provider"
         active_provider_state = self._hass.states.get(select_entity_id)
 
         attrs = {

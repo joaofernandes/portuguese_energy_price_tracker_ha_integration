@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Creates tag and publishes release without manual intervention
 - ApexCharts visualization examples for provider comparison in `examples/` directory
 
+### Fixed
+- **Icon display**: Moved icon files to repository root and converted to RGB format
+  - Icons now display correctly in Home Assistant and HACS
+  - Converted from RGBA to RGB to match Home Assistant icon standards
+  - Added proper HACS configuration for icon loading
+- **Entity naming**: Simplified generic routing sensor entity IDs
+  - Changed from `sensor.energy_price_tracker_active_provider_*` to `sensor.active_provider_*`
+  - Select entity changed from `select.energy_price_tracker_active_provider` to `select.active_provider`
+  - Cleaner, more intuitive entity names for automation and scripting
+
 ### Changed
 - **IMPORTANT**: Removed hourly aggregation - now exposes native 15-minute intervals from CSV source
   - Increased data points from 24 to 96 per day (4 intervals per hour)
