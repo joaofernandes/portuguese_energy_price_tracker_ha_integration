@@ -293,19 +293,24 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 "today_min_price_vat": None,
             }
 
-        # Find current price (first future or current time slot for TODAY only)
+        # Find current price (the period that contains the current time)
+        # Price periods are 15 minutes: [HH:MM - HH:MM+15[
         current_price = None
         for price in prices:
             try:
                 price_time = datetime.fromisoformat(price["datetime"])
                 # Only consider today's prices
-                if price_time.date() == today and price_time >= now:
-                    current_price = price
-                    break
+                if price_time.date() == today:
+                    # Check if current time falls within this price period
+                    # Period is [price_time, price_time + 15 minutes[
+                    period_end = price_time + timedelta(minutes=15)
+                    if price_time <= now < period_end:
+                        current_price = price
+                        break
             except (ValueError, KeyError):
                 continue
 
-        # If no future price found for today, use the last price from today
+        # If no matching period found (edge case), use the last price from today
         if not current_price:
             for price in reversed(prices):
                 try:
