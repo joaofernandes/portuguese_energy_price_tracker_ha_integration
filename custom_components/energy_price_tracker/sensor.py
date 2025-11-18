@@ -375,25 +375,34 @@ class ActiveProviderBaseSensor(SensorEntity):
         active_provider = self._hass.states.get(select_entity_id)
 
         if not active_provider or not active_provider.state:
+            _LOGGER.debug(f"Active provider select entity not found or has no state")
             return None
 
         selected_display_name = active_provider.state
 
         # Handle empty configuration case
         if selected_display_name == "No providers configured":
+            _LOGGER.debug(f"No providers configured")
             return None
 
         # Find the coordinator matching this display name
         if DOMAIN not in self._hass.data:
+            _LOGGER.debug(f"Domain {DOMAIN} not in hass.data")
             return None
 
+        _LOGGER.debug(f"Looking for coordinator with display_name: {selected_display_name}")
         for entry_id, coordinator in self._hass.data[DOMAIN].items():
-            if hasattr(coordinator, "display_name") and coordinator.display_name == selected_display_name:
-                # Found the matching coordinator, build entity ID from provider + tariff
-                provider = coordinator.provider.lower().replace(" ", "_")
-                tariff = coordinator.tariff.lower().replace(" ", "_")
-                return f"sensor.{provider}_{tariff}_{suffix}"
+            if hasattr(coordinator, "display_name"):
+                _LOGGER.debug(f"  Found coordinator with display_name: {coordinator.display_name}")
+                if coordinator.display_name == selected_display_name:
+                    # Found the matching coordinator, build entity ID from provider + tariff
+                    provider = coordinator.provider.lower().replace(" ", "_")
+                    tariff = coordinator.tariff.lower().replace(" ", "_")
+                    entity_id = f"sensor.{provider}_{tariff}_{suffix}"
+                    _LOGGER.debug(f"Matched! Built entity_id: {entity_id}")
+                    return entity_id
 
+        _LOGGER.warning(f"No coordinator found matching display_name: {selected_display_name}")
         return None
 
     async def async_added_to_hass(self) -> None:
