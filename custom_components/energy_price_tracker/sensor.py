@@ -386,10 +386,32 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_has_entity_name = False
         self._attr_should_poll = False
 
+    def _find_select_entity_id(self) -> str | None:
+        """Find the integration's select entity, handling potential naming conflicts."""
+        # Try exact match first
+        select_entity_id = "select.active_energy_provider"
+        if self._hass.states.get(select_entity_id):
+            return select_entity_id
+
+        # If not found, search for our select entity with unique_id
+        entity_reg = er.async_get(self._hass)
+        for entity in entity_reg.entities.values():
+            if (entity.platform == DOMAIN and
+                entity.domain == "select" and
+                entity.unique_id == "active_provider"):
+                _LOGGER.debug(f"Found integration select entity at: {entity.entity_id}")
+                return entity.entity_id
+
+        _LOGGER.warning("Could not find integration select entity")
+        return None
+
     def _get_active_provider_entity(self, suffix: str) -> str | None:
         """Get the entity ID for the active provider's sensor."""
         # Get active provider from select entity
-        select_entity_id = "select.active_energy_provider"
+        select_entity_id = self._find_select_entity_id()
+        if not select_entity_id:
+            return None
+
         active_provider = self._hass.states.get(select_entity_id)
 
         if not active_provider or not active_provider.state:
@@ -427,15 +449,12 @@ class ActiveProviderBaseSensor(SensorEntity):
         """Subscribe to provider sensor and select changes."""
         await super().async_added_to_hass()
 
-        # Track select entity changes
-        select_entity_id = "select.active_energy_provider"
-
         @callback
         def _update_callback(event=None):
             """Update when provider changes or provider sensor updates."""
             self.async_schedule_update_ha_state(force_refresh=False)
 
-        # Subscribe to select changes
+        # Subscribe to all state changes (we'll filter for our select entity dynamically)
         self.async_on_remove(
             self._hass.bus.async_listen("state_changed", _update_callback)
         )
