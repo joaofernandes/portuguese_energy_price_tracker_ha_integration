@@ -32,3 +32,6 @@ custom_components/portuguese_energy_price_tracker/data/
 # Docker development environment
 dev_config/
 !dev_config/configuration.yaml
+
+# GitHub Actions workflow artifacts
+release_notes.md
