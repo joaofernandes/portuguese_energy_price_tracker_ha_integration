@@ -1,0 +1,45 @@
+# Home Assistant Development Configuration
+# For testing Portuguese Energy Price Tracker integration
+
+homeassistant:
+  name: Dev Environment
+  latitude: 38.7223
+  longitude: -9.1393
+  elevation: 0
+  unit_system: metric
+  currency: EUR
+  country: PT
+  time_zone: Europe/Lisbon
+
+# Enable frontend
+default_config:
+
+# Enable debug logging for the integration
+logger:
+  default: info
+  logs:
+    custom_components.energy_price_tracker: debug
+    custom_components.energy_price_tracker.sensor: debug
+    custom_components.energy_price_tracker.select: debug
+
+# Enable recorder with in-memory database for faster testing
+recorder:
+  db_url: sqlite:///:memory:
+  purge_keep_days: 1
+
+# Enable history
+history:
+
+# Enable system health checks
+system_health:
+
+# Template sensors for testing legacy compatibility
+template:
+  - sensor:
+      - name: "Energy Price Current (Legacy)"
+        unique_id: energy_price_current_legacy
+        state: "{{ states('sensor.active_provider_current_price') | float(0) }}"
+        unit_of_measurement: "€/kWh"
+        device_class: monetary
+        state_class: total
+        availability: "{{ states('sensor.active_provider_current_price') not in ['unknown', 'unavailable'] }}"
