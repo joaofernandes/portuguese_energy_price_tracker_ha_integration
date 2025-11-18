@@ -377,16 +377,24 @@ class ActiveProviderBaseSensor(SensorEntity):
         if not active_provider or not active_provider.state:
             return None
 
-        provider_name = active_provider.state
+        selected_display_name = active_provider.state
 
         # Handle empty configuration case
-        if provider_name == "No providers configured":
+        if selected_display_name == "No providers configured":
             return None
 
-        # Convert display name to entity ID format (lowercase, replace spaces with underscores)
-        provider_slug = provider_name.lower().replace(" ", "_")
+        # Find the coordinator matching this display name
+        if DOMAIN not in self._hass.data:
+            return None
 
-        return f"sensor.{provider_slug}_{suffix}"
+        for entry_id, coordinator in self._hass.data[DOMAIN].items():
+            if hasattr(coordinator, "display_name") and coordinator.display_name == selected_display_name:
+                # Found the matching coordinator, build entity ID from provider + tariff
+                provider = coordinator.provider.lower().replace(" ", "_")
+                tariff = coordinator.tariff.lower().replace(" ", "_")
+                return f"sensor.{provider}_{tariff}_{suffix}"
+
+        return None
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to provider sensor and select changes."""

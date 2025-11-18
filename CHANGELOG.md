@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed from `sensor.energy_price_tracker_active_provider_*` to `sensor.active_provider_*`
   - Select entity changed from `select.energy_price_tracker_active_provider` to `select.active_provider`
   - Cleaner, more intuitive entity names for automation and scripting
+- **Routing sensor availability**: Fixed entity mapping for generic `active_provider_*` sensors
+  - Corrected display name to entity ID resolution
+  - Generic sensors now properly route to provider+tariff combination
+  - Fixes "unavailable" state for routing sensors
 
 ### Changed
 - **IMPORTANT**: Removed hourly aggregation - now exposes native 15-minute intervals from CSV source
