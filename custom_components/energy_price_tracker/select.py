@@ -78,6 +78,7 @@ class ActiveProviderSelect(SelectEntity):
                 if hasattr(coordinator, "display_name"):
                     # Use display name as option
                     display_name = coordinator.display_name
+                    _LOGGER.debug(f"Select: Found coordinator with display_name='{display_name}' (provider={coordinator.provider}, tariff={coordinator.tariff})")
                     if display_name and display_name not in options:
                         options.append(display_name)
 
