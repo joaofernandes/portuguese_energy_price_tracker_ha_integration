@@ -56,6 +56,19 @@ async def _async_migrate_entities(hass: HomeAssistant) -> None:
             entity_id = entity_registry.async_get_entity_id(Platform.SELECT, DOMAIN, old_unique_id)
 
         if entity_id:
+            # Check if the new unique_id is already in use
+            conflicting_sensor = entity_registry.async_get_entity_id(Platform.SENSOR, DOMAIN, new_unique_id)
+            conflicting_select = entity_registry.async_get_entity_id(Platform.SELECT, DOMAIN, new_unique_id)
+
+            # Remove conflicting entity if it exists
+            if conflicting_sensor:
+                _LOGGER.info(f"Removing conflicting sensor entity {conflicting_sensor} with unique_id '{new_unique_id}'")
+                entity_registry.async_remove(conflicting_sensor)
+            if conflicting_select:
+                _LOGGER.info(f"Removing conflicting select entity {conflicting_select} with unique_id '{new_unique_id}'")
+                entity_registry.async_remove(conflicting_select)
+
+            # Now migrate the old entity to the new unique_id
             _LOGGER.info(f"Migrating entity {entity_id} from unique_id '{old_unique_id}' to '{new_unique_id}'")
             entity_registry.async_update_entity(entity_id, new_unique_id=new_unique_id)
 
