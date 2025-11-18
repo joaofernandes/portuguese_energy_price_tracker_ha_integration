@@ -1,7 +1,7 @@
 """Constants for the Energy Price Tracker integration."""
 from typing import Final
 
-DOMAIN: Final = "energy_price_tracker"
+DOMAIN: Final = "portuguese_energy_price_tracker"
 
 # Configuration
 CONF_PROVIDER: Final = "provider"
