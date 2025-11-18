@@ -104,6 +104,23 @@ jobs:
               print(f"# Version {version}\n\nError extracting changelog: {str(e)}")
           EOF
 
+      - name: Update manifest.json with new version
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Update version in manifest.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" custom_components/energy_price_tracker/manifest.json
+          echo "Updated manifest.json to version ${VERSION}"
+
+      - name: Commit and push manifest change
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add custom_components/energy_price_tracker/manifest.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+          git push origin main
+
       - name: Create and push tag
         if: steps.check_tag.outputs.exists == 'false'
         run: |
