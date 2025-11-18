@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed from `sensor.energy_price_tracker_active_provider_*` to `sensor.active_provider_*`
   - Select entity changed from `select.energy_price_tracker_active_provider` to `select.active_provider`
   - Cleaner, more intuitive entity names for automation and scripting
+  - **Automatic migration**: Existing entities automatically migrate to new naming on update
 - **Routing sensor availability**: Fixed entity mapping for generic `active_provider_*` sensors
   - Corrected display name to entity ID resolution
   - Generic sensors now properly route to provider+tariff combination

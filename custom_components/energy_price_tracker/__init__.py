@@ -28,9 +28,44 @@ SERVICE_REFRESH_SCHEMA = vol.Schema({
 })
 
 
+async def _async_migrate_entities(hass: HomeAssistant) -> None:
+    """Migrate entity unique IDs from old format to new format."""
+    from homeassistant.helpers import entity_registry as er
+
+    entity_registry = er.async_get(hass)
+
+    # Migration mappings: old unique_id -> new unique_id
+    migrations = {
+        # Select entity migration
+        f"{DOMAIN}_active_provider": "active_provider",
+        # Sensor migrations
+        f"{DOMAIN}_active_provider_all_prices": "active_provider_all_prices",
+        f"{DOMAIN}_active_provider_current_price": "active_provider_current_price",
+        f"{DOMAIN}_active_provider_current_price_with_vat": "active_provider_current_price_with_vat",
+        f"{DOMAIN}_active_provider_today_max_price": "active_provider_today_max_price",
+        f"{DOMAIN}_active_provider_today_max_price_with_vat": "active_provider_today_max_price_with_vat",
+        f"{DOMAIN}_active_provider_today_min_price": "active_provider_today_min_price",
+        f"{DOMAIN}_active_provider_today_min_price_with_vat": "active_provider_today_min_price_with_vat",
+    }
+
+    for old_unique_id, new_unique_id in migrations.items():
+        # Find entity with old unique ID
+        entity_id = entity_registry.async_get_entity_id(Platform.SENSOR, DOMAIN, old_unique_id)
+        if not entity_id:
+            # Try select platform
+            entity_id = entity_registry.async_get_entity_id(Platform.SELECT, DOMAIN, old_unique_id)
+
+        if entity_id:
+            _LOGGER.info(f"Migrating entity {entity_id} from unique_id '{old_unique_id}' to '{new_unique_id}'")
+            entity_registry.async_update_entity(entity_id, new_unique_id=new_unique_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Price Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Migrate old entity unique IDs to new format (one-time migration)
+    await _async_migrate_entities(hass)
 
     coordinator = EnergyPriceCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()
