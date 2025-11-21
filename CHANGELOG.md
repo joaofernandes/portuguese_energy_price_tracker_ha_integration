@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Icons now display correctly in Home Assistant and HACS
   - Converted from RGBA to RGB to match Home Assistant icon standards
   - Added proper HACS configuration for icon loading
+- **Duplicate unique ID**: Fixed select entity unique_id collision
+  - Changed from `active_provider` to `{domain}_active_provider`
+  - Prevents "ID already exists" error when loading multiple config entries
+  - Select entity now creates properly for all installations
 - **Entity naming**: Simplified generic routing sensor entity IDs
   - Changed from `sensor.energy_price_tracker_active_provider_*` to `sensor.active_provider_*`
   - Select entity changed from `select.energy_price_tracker_active_provider` to `select.active_provider`

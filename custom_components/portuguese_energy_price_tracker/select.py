@@ -45,7 +45,7 @@ class ActiveProviderSelect(SelectEntity):
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the select entity."""
         self._hass = hass
-        self._attr_unique_id = "active_provider"
+        self._attr_unique_id = f"{DOMAIN}_active_provider"
         self._attr_name = "Active Energy Provider"
         self._attr_options = []
         self._attr_current_option = None
