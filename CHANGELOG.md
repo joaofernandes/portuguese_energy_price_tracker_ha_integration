@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **"No longer being provided" error for ActiveProvider sensors**: Added migration v2 to clean up orphaned routing sensor entities
+  - Automatically removes ActiveProvider routing sensors with incorrect unique_ids or missing config_entry_id
+  - Prevents "This entity is no longer being provided by the integration" errors
+  - Fresh sensors with correct unique_ids are recreated automatically after cleanup
+  - Keeps domain prefix in unique_ids to maintain uniqueness across integrations
 - **ApexCharts not updating when changing active provider**: Fixed routing sensors to force state refresh when select entity changes
   - Changed `_update_callback` to use `force_refresh=True` when `select.active_energy_provider` changes
   - Ensures Home Assistant notifies frontend about state updates even if values appear similar

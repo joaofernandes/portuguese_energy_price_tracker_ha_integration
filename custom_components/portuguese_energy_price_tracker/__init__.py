@@ -97,11 +97,70 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
         )
         _LOGGER.info("Migration v1 complete")
 
-    # Future migrations can be added here with version checks:
-    # if migration_version < 2:
-    #     _LOGGER.info("Running migration v2: ...")
-    #     ...
-    #     hass.config_entries.async_update_entry(entry, data={**entry.data, "migration_version": 2})
+    # Version 2: Clean up orphaned ActiveProvider routing sensor entities (v2.2.5+)
+    # These are the generic sensors that route to the active provider
+    if migration_version < 2:
+        _LOGGER.info("Running migration v2: Cleaning up orphaned ActiveProvider routing sensors")
+
+        # List of ActiveProvider routing sensor types (all the generic sensors)
+        routing_sensor_types = [
+            "current_price",
+            "current_price_with_vat",
+            "today_max_price",
+            "today_max_price_with_vat",
+            "today_min_price",
+            "today_min_price_with_vat",
+            "tomorrow_max_price",
+            "tomorrow_max_price_with_vat",
+            "tomorrow_min_price",
+            "tomorrow_min_price_with_vat",
+            "all_prices",
+        ]
+
+        orphaned_sensors = []
+
+        # Find all ActiveProvider routing sensors that might be orphaned
+        # These sensors are created by the first config entry only, but might have
+        # lost their config_entry_id or have incorrect unique_ids
+        for entity in entity_registry.entities.values():
+            if entity.platform != DOMAIN or entity.domain != "sensor":
+                continue
+
+            # Check if this is an ActiveProvider routing sensor by entity_id pattern
+            if entity.entity_id.startswith("sensor.active_provider_"):
+                # Check if it's one of our known routing sensors
+                is_routing_sensor = False
+                for sensor_type in routing_sensor_types:
+                    expected_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
+                    if entity.unique_id == expected_unique_id:
+                        is_routing_sensor = True
+                        break
+
+                # If entity_id matches pattern but unique_id doesn't match expected format,
+                # or if it has no config_entry_id, it's orphaned
+                if not is_routing_sensor or entity.config_entry_id is None:
+                    orphaned_sensors.append(entity.entity_id)
+                    _LOGGER.info(
+                        f"Found orphaned ActiveProvider sensor: {entity.entity_id} "
+                        f"(unique_id: {entity.unique_id}, config_entry_id: {entity.config_entry_id})"
+                    )
+
+        # Remove all orphaned routing sensors
+        if orphaned_sensors:
+            _LOGGER.info(f"Found {len(orphaned_sensors)} orphaned ActiveProvider routing sensor(s) to clean up")
+            for entity_id in orphaned_sensors:
+                _LOGGER.info(f"Removing orphaned sensor: {entity_id}")
+                entity_registry.async_remove(entity_id)
+            _LOGGER.info("ActiveProvider routing sensor cleanup complete. Fresh sensors will be created on next platform setup.")
+        else:
+            _LOGGER.debug("No orphaned ActiveProvider routing sensors found")
+
+        # Mark migration v2 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 2}
+        )
+        _LOGGER.info("Migration v2 complete")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
