@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Duplicate unique ID**: Fixed entity unique_id collisions
   - Select entity: Changed from `active_provider` to `{domain}_active_provider`
   - Routing sensors: Changed from `active_provider_{type}` to `{domain}_active_provider_{type}`
+  - Fixed migration mapping direction (was backwards, causing conflicts)
   - Prevents "ID already exists" errors when loading multiple config entries
   - All entities now create properly without unique ID warnings
 - **Entity naming**: Simplified generic routing sensor entity IDs

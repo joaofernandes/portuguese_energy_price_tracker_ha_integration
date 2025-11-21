@@ -37,15 +37,15 @@ async def _async_migrate_entities(hass: HomeAssistant) -> None:
     # Migration mappings: old unique_id -> new unique_id
     migrations = {
         # Select entity migration
-        f"{DOMAIN}_active_provider": "active_provider",
+        "active_provider": f"{DOMAIN}_active_provider",
         # Sensor migrations
-        f"{DOMAIN}_active_provider_all_prices": "active_provider_all_prices",
-        f"{DOMAIN}_active_provider_current_price": "active_provider_current_price",
-        f"{DOMAIN}_active_provider_current_price_with_vat": "active_provider_current_price_with_vat",
-        f"{DOMAIN}_active_provider_today_max_price": "active_provider_today_max_price",
-        f"{DOMAIN}_active_provider_today_max_price_with_vat": "active_provider_today_max_price_with_vat",
-        f"{DOMAIN}_active_provider_today_min_price": "active_provider_today_min_price",
-        f"{DOMAIN}_active_provider_today_min_price_with_vat": "active_provider_today_min_price_with_vat",
+        "active_provider_all_prices": f"{DOMAIN}_active_provider_all_prices",
+        "active_provider_current_price": f"{DOMAIN}_active_provider_current_price",
+        "active_provider_current_price_with_vat": f"{DOMAIN}_active_provider_current_price_with_vat",
+        "active_provider_today_max_price": f"{DOMAIN}_active_provider_today_max_price",
+        "active_provider_today_max_price_with_vat": f"{DOMAIN}_active_provider_today_max_price_with_vat",
+        "active_provider_today_min_price": f"{DOMAIN}_active_provider_today_min_price",
+        "active_provider_today_min_price_with_vat": f"{DOMAIN}_active_provider_today_min_price_with_vat",
     }
 
     for old_unique_id, new_unique_id in migrations.items():
