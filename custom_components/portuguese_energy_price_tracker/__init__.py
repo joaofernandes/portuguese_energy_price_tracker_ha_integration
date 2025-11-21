@@ -41,27 +41,50 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
     if migration_version < 1:
         _LOGGER.info("Running migration v1: Cleaning up duplicate select entities")
 
-        select_unique_id = f"{DOMAIN}_active_provider"
+        # List of unique_ids to search for and remove (both old and new formats)
+        unique_ids_to_clean = [
+            f"{DOMAIN}_active_provider",  # New format with domain prefix
+            "active_provider",            # Old format without prefix
+            "energy_price_tracker_active_provider",  # Very old format from previous domain
+        ]
 
-        # Find ALL entities with this unique_id across all platforms
+        # Also need to search in the old domain name
+        old_domain = "energy_price_tracker"
+
         all_entities = []
-        for platform in [Platform.SELECT, Platform.SENSOR]:
-            entity_id = entity_registry.async_get_entity_id(platform, DOMAIN, select_unique_id)
-            if entity_id:
-                all_entities.append((platform, entity_id))
 
-        # Also check for entities without domain prefix (old format)
-        old_unique_id = "active_provider"
-        for platform in [Platform.SELECT, Platform.SENSOR]:
-            entity_id = entity_registry.async_get_entity_id(platform, DOMAIN, old_unique_id)
-            if entity_id:
-                all_entities.append((platform, entity_id))
+        # Search in current DOMAIN
+        for unique_id in unique_ids_to_clean:
+            for platform in [Platform.SELECT, Platform.SENSOR]:
+                entity_id = entity_registry.async_get_entity_id(platform, DOMAIN, unique_id)
+                if entity_id:
+                    all_entities.append((platform, entity_id, unique_id))
+
+        # Also search in old domain (for orphaned entities)
+        for unique_id in unique_ids_to_clean:
+            for platform in [Platform.SELECT, Platform.SENSOR]:
+                entity_id = entity_registry.async_get_entity_id(platform, old_domain, unique_id)
+                if entity_id:
+                    all_entities.append((platform, entity_id, unique_id))
+
+        # Also find ANY orphaned select entities with matching entity_id pattern
+        # This catches entities that lost their config_entry_id
+        for entity in entity_registry.entities.values():
+            if (
+                entity.entity_id == "select.active_energy_provider" and
+                entity.platform in [DOMAIN, old_domain] and
+                entity.config_entry_id is None
+            ):
+                # This is an orphaned entity
+                if not any(e[1] == entity.entity_id for e in all_entities):
+                    all_entities.append((entity.platform, entity.entity_id, entity.unique_id))
+                    _LOGGER.info(f"Found orphaned select entity: {entity.entity_id} (unique_id: {entity.unique_id})")
 
         # Remove all found entities - we'll create a fresh one
         if all_entities:
             _LOGGER.info(f"Found {len(all_entities)} select entity(ies) to clean up")
-            for platform, entity_id in all_entities:
-                _LOGGER.info(f"Removing {platform} entity {entity_id} for cleanup")
+            for platform, entity_id, unique_id in all_entities:
+                _LOGGER.info(f"Removing {platform} entity {entity_id} (unique_id: {unique_id})")
                 entity_registry.async_remove(entity_id)
             _LOGGER.info("Select entity cleanup complete. New entity will be created on next platform setup.")
         else:

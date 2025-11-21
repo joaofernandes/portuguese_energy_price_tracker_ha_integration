@@ -24,7 +24,7 @@ async def async_setup_entry(
     # Only create the select entity once across all config entries
     # Check if we already have a select entity by checking the entity registry
     entity_reg = er.async_get(hass)
-    select_unique_id = f"{DOMAIN}_active_provider"
+    select_unique_id = "active_provider"
 
     # Check if select entity already exists in the registry
     existing_entity_id = entity_reg.async_get_entity_id("select", DOMAIN, select_unique_id)
@@ -48,7 +48,7 @@ class ActiveProviderSelect(SelectEntity):
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the select entity."""
         self._hass = hass
-        self._attr_unique_id = f"{DOMAIN}_active_provider"
+        self._attr_unique_id = "active_provider"  # Simple unique_id, platform already provides domain context
         self._attr_name = "Active Energy Provider"
         self._attr_options = []
         self._attr_current_option = None
