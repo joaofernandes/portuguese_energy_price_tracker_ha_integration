@@ -1,231 +1,57 @@
-# Energy Price Comparison Section
-# Copy this entire section configuration to add to your Home Assistant dashboard
-
-type: vertical-stack
-cards:
-  # Section Header
-  - type: markdown
-    content: |
-      # Energy Price Comparison
-      Comparing energy prices between providers
-
-  # Card 1: Side-by-side Price Comparison Chart
-  - type: custom:apexcharts-card
-    header:
-      show: true
-      title: Energy Price Comparison - Coopernico vs G9
-      show_states: true
-      colorize_states: true
-    graph_span: 24h
-    span:
-      start: day
-    now:
-      show: true
-      label: Now
-    experimental:
-      color_threshold: true
-    series:
-      - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
-        name: Coopernico Bi-Horário Semanal
-        type: line
-        stroke_width: 2
-        color: '#2196F3'
-        opacity: 0.8
-        show:
-          legend_value: true
-          in_header: true
-        data_generator: |
-          return entity.attributes.prices.map((item) => {
-            return [new Date(item.datetime).getTime(), item.price_w_vat];
-          });
-
-      - entity: sensor.g9_bihorario_semanal_all_prices
-        name: G9 Bi-Horário Semanal
-        type: line
-        stroke_width: 2
-        color: '#FF9800'
-        opacity: 0.8
-        show:
-          legend_value: true
-          in_header: true
-        data_generator: |
-          return entity.attributes.prices.map((item) => {
-            return [new Date(item.datetime).getTime(), item.price_w_vat];
-          });
-
-    apex_config:
-      chart:
-        height: 400
-      xaxis:
-        type: datetime
-        labels:
-          datetimeUTC: false
-          format: HH:mm
-      yaxis:
-        decimalsInFloat: 3
-        title:
-          text: Price (€/kWh)
-        labels:
-          formatter: |
-            EVAL:function(value) {
-              return value.toFixed(3) + ' €';
-            }
-      tooltip:
-        x:
-          format: dd/MM HH:mm
-        y:
-          formatter: |
-            EVAL:function(value) {
-              return value.toFixed(3) + ' €/kWh';
-            }
-      legend:
-        show: true
-        position: top
-      stroke:
-        curve: stepline
-      grid:
-        show: true
-        borderColor: '#e0e0e0'
-      dataLabels:
-        enabled: false
-
-  # Card 2: Price Difference Chart (Coopernico - G9)
-  - type: custom:apexcharts-card
-    header:
-      show: true
-      title: Price Difference (Coopernico - G9)
-      show_states: true
-      colorize_states: true
-    graph_span: 24h
-    span:
-      start: day
-    now:
-      show: true
-      label: Now
-    experimental:
-      color_threshold: true
-    series:
-      - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
-        name: Price Difference
-        type: area
-        stroke_width: 2
-        opacity: 0.3
-        show:
-          legend_value: true
-          in_header: true
-        data_generator: |
-          const coopernico = entity.attributes.prices;
-          const g9Entity = hass.states['sensor.g9_bihorario_semanal_all_prices'];
-          const g9 = g9Entity.attributes.prices;
-
-          return coopernico.map((item, index) => {
-            const diff = item.price_w_vat - (g9[index]?.price_w_vat || 0);
-            return [new Date(item.datetime).getTime(), diff];
-          });
-        color_threshold:
-          - value: -0.01
-            color: '#4CAF50'
-          - value: 0
-            color: '#FFC107'
-          - value: 0.01
-            color: '#F44336'
-
-    apex_config:
-      chart:
-        height: 300
-      xaxis:
-        type: datetime
-        labels:
-          datetimeUTC: false
-          format: HH:mm
-      yaxis:
-        decimalsInFloat: 3
-        title:
-          text: Price Difference (€/kWh)
-        labels:
-          formatter: |
-            EVAL:function(value) {
-              return value.toFixed(3) + ' €';
-            }
-      tooltip:
-        x:
-          format: dd/MM HH:mm
-        y:
-          formatter: |
-            EVAL:function(value) {
-              const sign = value >= 0 ? '+' : '';
-              return sign + value.toFixed(3) + ' €/kWh';
-            }
-      annotations:
-        yaxis:
-          - y: 0
-            borderColor: '#999'
-            strokeDashArray: 4
-            label:
-              text: Break-even
-              style:
-                color: '#666'
-                background: '#fefefe'
-      legend:
-        show: true
-        position: top
-      stroke:
-        curve: stepline
-      grid:
-        show: true
-        borderColor: '#e0e0e0'
-
-  # Card 3: Daily Statistics Grid (2 columns)
+type: sections
+title: Price tracker examples
+sections:
   - type: grid
-    columns: 2
-    square: false
     cards:
-      # Coopernico Statistics
       - type: custom:apexcharts-card
         header:
           show: true
-          title: Coopernico Daily Statistics
-          show_states: false
+          title: Energy Price Comparison - Coopernico vs G9
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        now:
+          show: true
+          label: Now
+        experimental:
+          color_threshold: true
         series:
           - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
-            name: Min Price
-            type: column
-            color: '#4CAF50'
-            float_precision: 3
+            name: Coopernico Bi-Horário Semanal
+            type: line
+            stroke_width: 2
+            color: "#2196F3"
+            opacity: 0.8
             show:
               legend_value: true
+              in_header: true
             data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const min = Math.min(...prices);
-              return [[new Date().getTime(), min]];
-
-          - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
-            name: Avg Price
-            type: column
-            color: '#FFC107'
-            float_precision: 3
+              return entity.attributes.prices.map((item) => {
+                return [new Date(item.datetime).getTime(), item.price_w_vat];
+              });
+          - entity: sensor.g9_bihorario_semanal_all_prices
+            name: G9 Bi-Horário Semanal
+            type: line
+            stroke_width: 2
+            color: "#FF9800"
+            opacity: 0.8
             show:
               legend_value: true
+              in_header: true
             data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-              return [[new Date().getTime(), avg]];
-
-          - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
-            name: Max Price
-            type: column
-            color: '#F44336'
-            float_precision: 3
-            show:
-              legend_value: true
-            data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const max = Math.max(...prices);
-              return [[new Date().getTime(), max]];
-
+              return entity.attributes.prices.map((item) => {
+                return [new Date(item.datetime).getTime(), item.price_w_vat];
+              });
         apex_config:
           chart:
-            height: 250
+            height: 400
+          xaxis:
+            type: datetime
+            labels:
+              datetimeUTC: false
+              format: HH:mm
           yaxis:
             decimalsInFloat: 3
             title:
@@ -235,77 +61,253 @@ cards:
                 EVAL:function(value) {
                   return value.toFixed(3) + ' €';
                 }
-          xaxis:
-            labels:
-              show: false
+          tooltip:
+            x:
+              format: dd/MM HH:mm
+            "y":
+              formatter: |
+                EVAL:function(value) {
+                  return value.toFixed(3) + ' €/kWh';
+                }
+          legend:
+            show: true
+            position: top
+          stroke:
+            curve: stepline
+          grid:
+            show: true
+            borderColor: "#e0e0e0"
           dataLabels:
-            enabled: true
-            formatter: |
-              EVAL:function(value) {
-                return value.toFixed(3);
-              }
-
-      # G9 Statistics
+            enabled: false
       - type: custom:apexcharts-card
         header:
           show: true
-          title: G9 Daily Statistics
-          show_states: false
+          title: Price Difference (Coopernico - G9)
+          show_states: true
+          colorize_states: true
+        graph_span: 24h
+        span:
+          start: day
+        now:
+          show: true
+          label: Now
+        experimental:
+          color_threshold: true
         series:
-          - entity: sensor.g9_bihorario_semanal_all_prices
-            name: Min Price
-            type: column
-            color: '#4CAF50'
-            float_precision: 3
+          - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
+            name: Price Difference
+            type: area
+            stroke_width: 2
+            opacity: 0.3
             show:
               legend_value: true
-            data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const min = Math.min(...prices);
-              return [[new Date().getTime(), min]];
+              in_header: true
+            data_generator: >
+              const coopernico = entity.attributes.prices;
 
-          - entity: sensor.g9_bihorario_semanal_all_prices
-            name: Avg Price
-            type: column
-            color: '#FFC107'
-            float_precision: 3
-            show:
-              legend_value: true
-            data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-              return [[new Date().getTime(), avg]];
+              const g9Entity =
+              hass.states['sensor.g9_bihorario_semanal_all_prices'];
 
-          - entity: sensor.g9_bihorario_semanal_all_prices
-            name: Max Price
-            type: column
-            color: '#F44336'
-            float_precision: 3
-            show:
-              legend_value: true
-            data_generator: |
-              const prices = entity.attributes.prices.map(p => p.price_w_vat);
-              const max = Math.max(...prices);
-              return [[new Date().getTime(), max]];
+              const g9 = g9Entity.attributes.prices;
 
+
+              return coopernico.map((item, index) => {
+                const diff = item.price_w_vat - (g9[index]?.price_w_vat || 0);
+                return [new Date(item.datetime).getTime(), diff];
+              });
+            color_threshold:
+              - value: -0.01
+                color: "#4CAF50"
+              - value: 0
+                color: "#FFC107"
+              - value: 0.01
+                color: "#F44336"
         apex_config:
           chart:
-            height: 250
+            height: 300
+          xaxis:
+            type: datetime
+            labels:
+              datetimeUTC: false
+              format: HH:mm
           yaxis:
             decimalsInFloat: 3
             title:
-              text: Price (€/kWh)
+              text: Price Difference (€/kWh)
             labels:
               formatter: |
                 EVAL:function(value) {
                   return value.toFixed(3) + ' €';
                 }
-          xaxis:
-            labels:
-              show: false
-          dataLabels:
-            enabled: true
-            formatter: |
-              EVAL:function(value) {
-                return value.toFixed(3);
-              }
+          tooltip:
+            x:
+              format: dd/MM HH:mm
+            "y":
+              formatter: |
+                EVAL:function(value) {
+                  const sign = value >= 0 ? '+' : '';
+                  return sign + value.toFixed(3) + ' €/kWh';
+                }
+          annotations:
+            yaxis:
+              - "y": 0
+                borderColor: "#999"
+                strokeDashArray: 4
+                label:
+                  text: Break-even
+                  style:
+                    color: "#666"
+                    background: "#fefefe"
+          legend:
+            show: true
+            position: top
+          stroke:
+            curve: stepline
+          grid:
+            show: true
+            borderColor: "#e0e0e0"
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Coopernico Daily Statistics
+              show_states: false
+            series:
+              - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
+                name: Min Price
+                type: column
+                color: "#4CAF50"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const min = Math.min(...prices);
+
+                  return [[new Date().getTime(), min]];
+              - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
+                name: Avg Price
+                type: column
+                color: "#FFC107"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+                  return [[new Date().getTime(), avg]];
+              - entity: sensor.coopernico_base_bi_horario_ciclo_semanal_all_prices
+                name: Max Price
+                type: column
+                color: "#F44336"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const max = Math.max(...prices);
+
+                  return [[new Date().getTime(), max]];
+            apex_config:
+              chart:
+                height: 250
+              yaxis:
+                decimalsInFloat: 3
+                title:
+                  text: Price (€/kWh)
+                labels:
+                  formatter: |
+                    EVAL:function(value) {
+                      return value.toFixed(3) + ' €';
+                    }
+              xaxis:
+                labels:
+                  show: false
+              dataLabels:
+                enabled: true
+                formatter: |
+                  EVAL:function(value) {
+                    return value.toFixed(3);
+                  }
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: G9 Daily Statistics
+              show_states: false
+            series:
+              - entity: sensor.g9_bihorario_semanal_all_prices
+                name: Min Price
+                type: column
+                color: "#4CAF50"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const min = Math.min(...prices);
+
+                  return [[new Date().getTime(), min]];
+              - entity: sensor.g9_bihorario_semanal_all_prices
+                name: Avg Price
+                type: column
+                color: "#FFC107"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+
+                  return [[new Date().getTime(), avg]];
+              - entity: sensor.g9_bihorario_semanal_all_prices
+                name: Max Price
+                type: column
+                color: "#F44336"
+                float_precision: 3
+                show:
+                  legend_value: true
+                data_generator: >
+                  const prices = entity.attributes.prices.map(p =>
+                  p.price_w_vat);
+
+                  const max = Math.max(...prices);
+
+                  return [[new Date().getTime(), max]];
+            apex_config:
+              chart:
+                height: 250
+              yaxis:
+                decimalsInFloat: 3
+                title:
+                  text: Price (€/kWh)
+                labels:
+                  formatter: |
+                    EVAL:function(value) {
+                      return value.toFixed(3) + ' €';
+                    }
+              xaxis:
+                labels:
+                  show: false
+              dataLabels:
+                enabled: true
+                formatter: |
+                  EVAL:function(value) {
+                    return value.toFixed(3);
+                  }
+max_columns: 6
+cards: []
+dense_section_placement: true
