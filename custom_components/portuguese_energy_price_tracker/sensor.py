@@ -687,7 +687,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         for entity in entity_reg.entities.values():
             if (entity.platform == DOMAIN and
                 entity.domain == "select" and
-                entity.unique_id == f"{DOMAIN}_active_provider"):
+                entity.unique_id == "active_provider"):  # Fixed: was f"{DOMAIN}_active_provider"
                 _LOGGER.debug(f"Found integration select entity at: {entity.entity_id}")
                 return entity.entity_id
 

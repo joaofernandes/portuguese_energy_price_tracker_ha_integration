@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Active Provider (generic) sensors not working**: Fixed routing sensors not finding select entity
+  - Changed unique_id lookup from `portuguese_energy_price_tracker_active_provider` to `active_provider`
+  - Matches the select entity unique_id changed in v2.2.1
+  - Routing sensors now properly find and work with the select entity
+
 ### Added
 
 - **Enhanced logging for data fetch debugging**: Added detailed INFO-level logs to track today/tomorrow data fetching
