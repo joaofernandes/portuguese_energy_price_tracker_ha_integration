@@ -28,57 +28,65 @@ SERVICE_REFRESH_SCHEMA = vol.Schema({
 })
 
 
-async def _async_migrate_entities(hass: HomeAssistant) -> None:
-    """Migrate entity unique IDs from old format to new format."""
+async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Migrate entities and clean up duplicates (one-time upgrade)."""
     from homeassistant.helpers import entity_registry as er
 
     entity_registry = er.async_get(hass)
 
-    # Migration mappings: old unique_id -> new unique_id
-    migrations = {
-        # Select entity migration
-        "active_provider": f"{DOMAIN}_active_provider",
-        # Sensor migrations
-        "active_provider_all_prices": f"{DOMAIN}_active_provider_all_prices",
-        "active_provider_current_price": f"{DOMAIN}_active_provider_current_price",
-        "active_provider_current_price_with_vat": f"{DOMAIN}_active_provider_current_price_with_vat",
-        "active_provider_today_max_price": f"{DOMAIN}_active_provider_today_max_price",
-        "active_provider_today_max_price_with_vat": f"{DOMAIN}_active_provider_today_max_price_with_vat",
-        "active_provider_today_min_price": f"{DOMAIN}_active_provider_today_min_price",
-        "active_provider_today_min_price_with_vat": f"{DOMAIN}_active_provider_today_min_price_with_vat",
-    }
+    # Check if migration has already run
+    migration_version = entry.data.get("migration_version", 0)
 
-    for old_unique_id, new_unique_id in migrations.items():
-        # Find entity with old unique ID
-        entity_id = entity_registry.async_get_entity_id(Platform.SENSOR, DOMAIN, old_unique_id)
-        if not entity_id:
-            # Try select platform
-            entity_id = entity_registry.async_get_entity_id(Platform.SELECT, DOMAIN, old_unique_id)
+    # Version 1: Clean up duplicate select entities (v2.2.0+)
+    if migration_version < 1:
+        _LOGGER.info("Running migration v1: Cleaning up duplicate select entities")
 
-        if entity_id:
-            # Check if the new unique_id is already in use
-            conflicting_sensor = entity_registry.async_get_entity_id(Platform.SENSOR, DOMAIN, new_unique_id)
-            conflicting_select = entity_registry.async_get_entity_id(Platform.SELECT, DOMAIN, new_unique_id)
+        select_unique_id = f"{DOMAIN}_active_provider"
 
-            # Remove conflicting entity if it exists
-            if conflicting_sensor:
-                _LOGGER.info(f"Removing conflicting sensor entity {conflicting_sensor} with unique_id '{new_unique_id}'")
-                entity_registry.async_remove(conflicting_sensor)
-            if conflicting_select:
-                _LOGGER.info(f"Removing conflicting select entity {conflicting_select} with unique_id '{new_unique_id}'")
-                entity_registry.async_remove(conflicting_select)
+        # Find ALL entities with this unique_id across all platforms
+        all_entities = []
+        for platform in [Platform.SELECT, Platform.SENSOR]:
+            entity_id = entity_registry.async_get_entity_id(platform, DOMAIN, select_unique_id)
+            if entity_id:
+                all_entities.append((platform, entity_id))
 
-            # Now migrate the old entity to the new unique_id
-            _LOGGER.info(f"Migrating entity {entity_id} from unique_id '{old_unique_id}' to '{new_unique_id}'")
-            entity_registry.async_update_entity(entity_id, new_unique_id=new_unique_id)
+        # Also check for entities without domain prefix (old format)
+        old_unique_id = "active_provider"
+        for platform in [Platform.SELECT, Platform.SENSOR]:
+            entity_id = entity_registry.async_get_entity_id(platform, DOMAIN, old_unique_id)
+            if entity_id:
+                all_entities.append((platform, entity_id))
+
+        # Remove all found entities - we'll create a fresh one
+        if all_entities:
+            _LOGGER.info(f"Found {len(all_entities)} select entity(ies) to clean up")
+            for platform, entity_id in all_entities:
+                _LOGGER.info(f"Removing {platform} entity {entity_id} for cleanup")
+                entity_registry.async_remove(entity_id)
+            _LOGGER.info("Select entity cleanup complete. New entity will be created on next platform setup.")
+        else:
+            _LOGGER.debug("No duplicate select entities found")
+
+        # Mark migration v1 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 1}
+        )
+        _LOGGER.info("Migration v1 complete")
+
+    # Future migrations can be added here with version checks:
+    # if migration_version < 2:
+    #     _LOGGER.info("Running migration v2: ...")
+    #     ...
+    #     hass.config_entries.async_update_entry(entry, data={**entry.data, "migration_version": 2})
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Price Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Migrate old entity unique IDs to new format (one-time migration)
-    await _async_migrate_entities(hass)
+    # Run one-time migrations (version tracked per config entry)
+    await _async_migrate_entities(hass, entry)
 
     coordinator = EnergyPriceCoordinator(hass, entry)
     await coordinator.async_config_entry_first_refresh()

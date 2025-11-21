@@ -2,6 +2,80 @@
 
 Automation scripts for development, testing, and release management of the Portuguese Energy Price Tracker integration.
 
+## cleanup_select_entity.py
+
+**⚠️ NOTE**: As of v2.2.0, the integration includes **automatic migration** that handles this cleanup on upgrade. This script is now primarily a **backup/troubleshooting tool** for edge cases.
+
+### When to use
+
+**Automatic Migration (v2.2.0+)**: When you upgrade from an earlier version to v2.2.0+, the integration automatically cleans up duplicate select entities. No manual action needed!
+
+**This manual script is only needed if**:
+1. You're already on v2.2.0+ and still have duplicates
+2. The automatic migration didn't run or failed
+3. You need to troubleshoot entity registry issues manually
+
+If you see this error after upgrading to v2.2.0+:
+```
+Platform portuguese_energy_price_tracker does not generate unique IDs.
+ID active_provider already exists - ignoring select.active_energy_provider
+```
+
+This script can manually remove the duplicates.
+
+### Usage
+
+**⚠️ IMPORTANT: Stop Home Assistant before running this script!**
+
+```bash
+# Dry run (preview changes without modifying)
+python3 scripts/cleanup_select_entity.py /path/to/.storage/core.entity_registry
+
+# Actually clean up duplicates
+python3 scripts/cleanup_select_entity.py /path/to/.storage/core.entity_registry --apply
+```
+
+### What it does
+
+1. ✅ Creates automatic backup of entity registry
+2. ✅ Finds all select entities for this integration
+3. ✅ Keeps the first one, removes duplicates
+4. ✅ Saves cleaned registry
+
+### Example
+
+```bash
+# Stop Home Assistant first!
+cd /config
+python3 scripts/cleanup_select_entity.py .storage/core.entity_registry
+
+# Output:
+# 📊 Found 2 select entity(ies):
+#   - select.active_energy_provider
+#   - select.active_energy_provider
+#
+# ⚠️  Found 2 duplicate select entities!
+#    Will keep the first one and remove 1 duplicate(s)
+#
+# 🔍 DRY RUN - No changes will be made
+#    Run with --apply to actually clean up the registry
+
+# If everything looks good, apply the cleanup:
+python3 scripts/cleanup_select_entity.py .storage/core.entity_registry --apply
+
+# Then restart Home Assistant
+```
+
+### Alternative: Manual cleanup via UI
+
+1. Go to **Settings → Devices & Services → Entities**
+2. Search for "active energy provider"
+3. Delete all instances
+4. Restart Home Assistant
+5. The entity will be recreated correctly on next startup
+
+---
+
 ## prepare_release.py
 
 Automated script to prepare a new release.

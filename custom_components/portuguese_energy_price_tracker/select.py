@@ -21,25 +21,20 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Energy Price Tracker select entity."""
-    # Only create the select entity once for the first config entry
-    # Check if we already have a select entity by unique_id
+    # Only create the select entity once across all config entries
+    # Check if we already have a select entity by checking the entity registry
     entity_reg = er.async_get(hass)
     select_unique_id = f"{DOMAIN}_active_provider"
 
-    # Count how many times we've been called (one per config entry)
-    if not hasattr(hass.data.get(DOMAIN, {}), "_select_setup_count"):
-        if DOMAIN not in hass.data:
-            hass.data[DOMAIN] = {}
-        hass.data[DOMAIN]["_select_setup_count"] = 0
+    # Check if select entity already exists in the registry
+    existing_entity_id = entity_reg.async_get_entity_id("select", DOMAIN, select_unique_id)
 
-    hass.data[DOMAIN]["_select_setup_count"] += 1
-
-    # Only create on first call, let HA handle restoration from registry
-    if hass.data[DOMAIN]["_select_setup_count"] > 1:
-        _LOGGER.debug(f"Select entity already set up by first config entry, skipping (call #{hass.data[DOMAIN]['_select_setup_count']})")
+    if existing_entity_id:
+        _LOGGER.debug(f"Select entity already exists in registry ({existing_entity_id}), skipping creation")
         return
 
-    # Create the select entity
+    # Create the select entity (only on first config entry setup)
+    _LOGGER.debug(f"Creating select entity with unique_id: {select_unique_id}")
     select = ActiveProviderSelect(hass)
     async_add_entities([select])
 
