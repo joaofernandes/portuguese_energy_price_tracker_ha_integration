@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic HACS installation**: Docker development container now auto-installs HACS on first startup
+  - No manual installation needed - just `docker-compose up -d`
+  - Checks for HACS presence and installs if missing
+  - Uses `-o` flag for non-interactive overwrite during extraction
+  - Extracts directly to `/config/custom_components/hacs` subdirectory
+  - Maintains backward compatibility with manual installation script
+- **Tomorrow's price data**: Complete 48-hour price data now available
+  - **Three new sensors** for flexible data access:
+    - `today_prices` - Today's data only with ALL fields (96 data points max)
+    - `tomorrow_prices` - Tomorrow's data only with ALL fields (up to 96 data points)
+    - `all_prices` - Combined 48-hour view (today + tomorrow, perfect for charts)
+  - All sensors keep **ALL fields**: `datetime`, `interval`, `price`, `price_w_vat`, `market_price`, `tar_cost`
+  - **No 16KB database warnings**: Uses `_unrecorded_attributes` to exclude `prices` from storage
+    - Data remains fully available to frontend (charts, dashboards, automations)
+    - Only excludes from long-term database storage to prevent size warnings
+    - Better approach than field reduction - zero data loss
+  - Enables better planning for next-day energy consumption
+  - CSV source already contained tomorrow's data, now properly exposed
 - Config entry removal handler (`async_remove_entry`) with proper logging
 - Documentation for managing configurations (add, edit, delete) in README
 - **Fully automated releases**: Every push to main now automatically creates a GitHub release
@@ -17,6 +35,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ApexCharts visualization examples for provider comparison in `examples/` directory
 
 ### Fixed
+- **Critical**: Fixed missing imports in sensor.py
+  - Added missing `timedelta` import (fixed all_prices sensor crashes)
+  - Added missing `entity_registry as er` import (fixed routing sensor crashes)
+  - Resolves "NameError: name 'timedelta' is not defined" and "NameError: name 'er' is not defined"
+  - All sensors now load correctly without import errors
+- **Select entity initialization**: Fixed select entity not being created on restart
+  - Changed setup logic to create entity on first config entry only
+  - Prevents multiple setup attempts that were causing entity to stay unavailable
+  - Routing sensors now properly detect when select entity becomes available
+  - Handles "unavailable" state gracefully and updates when select becomes ready
+- **Routing sensor entity lookup**: Fixed routing sensors not finding provider entities with special characters
+  - Changed from string slugification to entity registry lookup
+  - Now properly finds entities regardless of special characters (é, í, á, etc.)
+  - Matches entities by config_entry_id and unique_id suffix pattern
+  - Routing sensors now correctly display data from selected provider
 - **Critical**: Fixed async/await error in CSV file saving
   - Changed `save_to_local()` from async to sync method
   - Fixed "object NoneType can't be used in 'await' expression" error
@@ -47,6 +80,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Increased data points from 24 to 96 per day (4 intervals per hour)
   - Provides higher granularity for accurate time-of-use optimization
   - No data loss from averaging - users see actual 15-minute pricing
+- **Smart caching strategy**: Improved data persistence logic for better tomorrow's price availability
+  - Today's data: Persisted to disk only when we have more complete data than existing cache
+  - Tomorrow's data: Kept in memory cache, never overwrites more complete cached data
+  - Smart overwrite protection: Only saves to disk if new data has more data points than existing
+  - Past dates: Fetched from Git history only when explicitly requested
+  - Coordinator now fetches both today and tomorrow in each update cycle
+  - Ensures tomorrow's prices are always visible as soon as they're published upstream
 - **Simplified configuration**: Removed options flow (configure/restore data menu)
   - VAT configuration remains at initial setup only (per provider/tariff)
   - Removed unnecessary post-configuration options menu

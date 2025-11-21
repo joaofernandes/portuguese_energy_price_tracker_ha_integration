@@ -9,6 +9,9 @@ services:
       - ./custom_components/portuguese_energy_price_tracker:/config/custom_components/portuguese_energy_price_tracker
       # Persistent HA config directory
       - ./dev_config:/config
+      # Mount entrypoint script for automatic HACS installation
+      - ./scripts/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+    entrypoint: ["/docker-entrypoint.sh"]
     environment:
       - TZ=Europe/Lisbon
     ports:

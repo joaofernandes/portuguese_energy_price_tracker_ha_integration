@@ -1,6 +1,6 @@
-# Release Scripts
+# Development Scripts
 
-Automation scripts for managing releases of the Portuguese Energy Price Tracker integration.
+Automation scripts for development, testing, and release management of the Portuguese Energy Price Tracker integration.
 
 ## prepare_release.py
 
@@ -130,3 +130,102 @@ Make sure:
 2. The `manifest.json` file changed
 3. GitHub Actions are enabled in repository settings
 4. You have proper permissions
+
+---
+
+## Automatic HACS Installation
+
+The Docker development container **automatically installs HACS** on first startup if not already present.
+
+### How it works
+
+1. ✅ Container checks for HACS on startup
+2. ✅ If missing, downloads latest HACS release from GitHub
+3. ✅ Extracts HACS to `/config/custom_components/hacs`
+4. ✅ Starts Home Assistant with HACS ready
+
+### First time setup
+
+```bash
+# Just start the container - HACS installs automatically
+docker-compose up -d
+
+# Watch the startup logs to see HACS installation
+docker logs -f portuguese_energy_price_tracker_dev
+```
+
+## install_hacs.sh
+
+Manual HACS installation script (backup option if automatic installation fails).
+
+### Usage
+
+```bash
+# Make sure the container is running
+docker-compose up -d
+
+# Run the installation script manually
+./scripts/install_hacs.sh
+```
+
+### What it does
+
+1. ✅ Checks if the Home Assistant container is running
+2. ✅ Downloads the latest HACS release from GitHub
+3. ✅ Extracts HACS to `dev_config/custom_components/hacs`
+4. ✅ Restarts the Home Assistant container
+
+### After installation
+
+1. Wait for Home Assistant to restart (30-60 seconds)
+2. Open http://localhost:8123
+3. Navigate to **Configuration → Integrations**
+4. Click **+ Add Integration** and search for **HACS**
+5. Follow the setup wizard to authenticate with GitHub
+6. Once HACS is configured, add custom repositories:
+   - Go to **HACS → Integrations**
+   - Click the **three dots menu → Custom repositories**
+   - Add: `joaofernandes/portuguese_energy_price_tracker_ha_integration`
+   - Category: **Integration**
+   - Click **Add**
+
+### Requirements
+
+- Docker and docker-compose installed
+- `curl` and `unzip` utilities available
+- Container name: `portuguese_energy_price_tracker_dev`
+
+### Troubleshooting
+
+#### HACS doesn't appear after installation
+
+```bash
+# Check container logs
+docker logs -f portuguese_energy_price_tracker_dev
+
+# Restart the container manually
+docker restart portuguese_energy_price_tracker_dev
+
+# Verify HACS files exist
+ls -la dev_config/custom_components/hacs/
+```
+
+#### Need to reinstall HACS
+
+```bash
+# Remove existing HACS installation
+rm -rf dev_config/custom_components/hacs
+
+# Run the install script again
+./scripts/install_hacs.sh
+```
+
+### Development Workflow with HACS
+
+Once HACS is installed, you can test the integration in a more realistic environment:
+
+1. **Install via HACS**: Add the repository and install through HACS UI
+2. **Development Testing**: The integration is already mounted directly via docker-compose
+3. **Live Updates**: Changes to files are reflected immediately (may need HA restart)
+
+**Note**: The direct mount in docker-compose.yml takes precedence over HACS installations, so you can develop and test simultaneously.
