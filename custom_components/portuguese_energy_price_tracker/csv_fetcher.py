@@ -345,7 +345,7 @@ class CSVDataFetcher:
                 csv_content = await self.fetch_historical_csv(target_date)
 
             # Save to local
-            await self.save_to_local(target_date, csv_content)
+            self.save_to_local(target_date, csv_content)
 
         # Parse CSV
         prices = self.parse_csv(csv_content, provider, tariff, vat_rate)

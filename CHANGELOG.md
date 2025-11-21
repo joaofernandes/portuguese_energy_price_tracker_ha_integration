@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ApexCharts visualization examples for provider comparison in `examples/` directory
 
 ### Fixed
+- **Critical**: Fixed async/await error in CSV file saving
+  - Changed `save_to_local()` from async to sync method
+  - Fixed "object NoneType can't be used in 'await' expression" error
+  - Resolves data fetching failures that prevented integration from loading price data
 - **Icon display**: Moved icon files to repository root and converted to RGB format
   - Icons now display correctly in Home Assistant and HACS
   - Converted from RGBA to RGB to match Home Assistant icon standards
