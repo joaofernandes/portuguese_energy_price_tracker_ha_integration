@@ -382,7 +382,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._hass = hass
         self._sensor_type = sensor_type
         self._attr_name = name
-        self._attr_unique_id = f"active_provider_{sensor_type}"
+        self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
         self._attr_has_entity_name = False
         self._attr_should_poll = False
 
@@ -398,7 +398,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         for entity in entity_reg.entities.values():
             if (entity.platform == DOMAIN and
                 entity.domain == "select" and
-                entity.unique_id == "active_provider"):
+                entity.unique_id == f"{DOMAIN}_active_provider"):
                 _LOGGER.debug(f"Found integration select entity at: {entity.entity_id}")
                 return entity.entity_id
 
