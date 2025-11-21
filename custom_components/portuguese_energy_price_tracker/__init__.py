@@ -197,9 +197,10 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self):
-        """Fetch data from GitHub CSV."""
+        """Fetch data from GitHub CSV (both today and tomorrow)."""
         try:
-            prices = await self.csv_fetcher.get_prices(
+            # Fetch today's prices
+            today_prices = await self.csv_fetcher.get_prices(
                 provider=self.provider,
                 tariff=self.tariff,
                 vat_rate=self.vat,
@@ -207,34 +208,90 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 bypass_cache=False,
             )
 
-            return self._process_prices(prices)
+            # Fetch tomorrow's prices
+            tomorrow = datetime.now() + timedelta(days=1)
+            tomorrow_prices = await self.csv_fetcher.get_prices(
+                provider=self.provider,
+                tariff=self.tariff,
+                vat_rate=self.vat,
+                target_date=tomorrow,
+                bypass_cache=False,
+            )
+
+            # Combine today and tomorrow prices
+            all_prices = today_prices + tomorrow_prices
+            _LOGGER.debug(
+                f"Fetched {len(today_prices)} prices for today, "
+                f"{len(tomorrow_prices)} prices for tomorrow "
+                f"(total: {len(all_prices)})"
+            )
+
+            return self._process_prices(all_prices)
 
         except Exception as err:
             raise UpdateFailed(f"Error fetching data: {err}")
 
     async def refresh_data(self, target_date: datetime | None = None, bypass_cache: bool = False):
-        """Refresh data for a specific date or today."""
+        """Refresh data for a specific date or today (and tomorrow if refreshing today)."""
         try:
-            _LOGGER.info(
-                f"[REFRESH] Fetching data for {self.display_name}: "
-                f"{'today' if target_date is None else target_date.strftime('%Y-%m-%d')}"
-            )
+            # If refreshing today (target_date is None), fetch both today and tomorrow
+            if target_date is None:
+                _LOGGER.info(
+                    f"[REFRESH] Fetching data for {self.display_name}: today and tomorrow"
+                )
 
-            prices = await self.csv_fetcher.get_prices(
-                provider=self.provider,
-                tariff=self.tariff,
-                vat_rate=self.vat,
-                target_date=target_date,
-                bypass_cache=bypass_cache,
-            )
+                # Fetch today's prices
+                today_prices = await self.csv_fetcher.get_prices(
+                    provider=self.provider,
+                    tariff=self.tariff,
+                    vat_rate=self.vat,
+                    target_date=None,  # Today
+                    bypass_cache=bypass_cache,
+                )
 
-            _LOGGER.info(
-                f"[REFRESH] Successfully fetched {len(prices)} price entries for {self.display_name}"
-            )
+                # Fetch tomorrow's prices
+                tomorrow = datetime.now() + timedelta(days=1)
+                tomorrow_prices = await self.csv_fetcher.get_prices(
+                    provider=self.provider,
+                    tariff=self.tariff,
+                    vat_rate=self.vat,
+                    target_date=tomorrow,
+                    bypass_cache=bypass_cache,
+                )
 
-            # If refreshing today's data, update the coordinator data
-            if target_date is None or target_date.date() == dt_util.now().date():
-                self.async_set_updated_data(self._process_prices(prices))
+                # Combine today and tomorrow prices
+                all_prices = today_prices + tomorrow_prices
+
+                _LOGGER.info(
+                    f"[REFRESH] Successfully fetched {len(today_prices)} price entries for today, "
+                    f"{len(tomorrow_prices)} for tomorrow (total: {len(all_prices)}) for {self.display_name}"
+                )
+
+                # Update coordinator data with combined prices
+                self.async_set_updated_data(self._process_prices(all_prices))
+
+            else:
+                # Refreshing a specific date
+                _LOGGER.info(
+                    f"[REFRESH] Fetching data for {self.display_name}: "
+                    f"{target_date.strftime('%Y-%m-%d')}"
+                )
+
+                prices = await self.csv_fetcher.get_prices(
+                    provider=self.provider,
+                    tariff=self.tariff,
+                    vat_rate=self.vat,
+                    target_date=target_date,
+                    bypass_cache=bypass_cache,
+                )
+
+                _LOGGER.info(
+                    f"[REFRESH] Successfully fetched {len(prices)} price entries for {self.display_name}"
+                )
+
+                # Only update coordinator if refreshing today
+                if target_date.date() == dt_util.now().date():
+                    self.async_set_updated_data(self._process_prices(prices))
 
         except Exception as err:
             _LOGGER.error(
@@ -257,6 +314,10 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 "today_min_price": None,
                 "today_max_price_vat": None,
                 "today_min_price_vat": None,
+                "tomorrow_max_price": None,
+                "tomorrow_min_price": None,
+                "tomorrow_max_price_vat": None,
+                "tomorrow_min_price_vat": None,
             }
 
         # Get today's date (timezone-aware)
@@ -291,6 +352,10 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 "today_min_price": None,
                 "today_max_price_vat": None,
                 "today_min_price_vat": None,
+                "tomorrow_max_price": None,
+                "tomorrow_min_price": None,
+                "tomorrow_max_price_vat": None,
+                "tomorrow_min_price_vat": None,
             }
 
         # Find current price (the period that contains the current time)
@@ -327,6 +392,28 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
         today_max_vat = max(today_prices_vat) if today_prices_vat else None
         today_min_vat = min(today_prices_vat) if today_prices_vat else None
 
+        # Filter tomorrow's prices
+        tomorrow = (now + timedelta(days=1)).date()
+        tomorrow_prices = []
+        tomorrow_prices_vat = []
+
+        for p in prices:
+            try:
+                price_time = datetime.fromisoformat(p["datetime"])
+                if price_time.date() == tomorrow:
+                    if p.get("price") is not None:
+                        tomorrow_prices.append(float(p["price"]))
+                    if p.get("price_w_vat") is not None:
+                        tomorrow_prices_vat.append(float(p["price_w_vat"]))
+            except (ValueError, KeyError):
+                continue
+
+        # Calculate tomorrow's max/min
+        tomorrow_max = max(tomorrow_prices) if tomorrow_prices else None
+        tomorrow_min = min(tomorrow_prices) if tomorrow_prices else None
+        tomorrow_max_vat = max(tomorrow_prices_vat) if tomorrow_prices_vat else None
+        tomorrow_min_vat = min(tomorrow_prices_vat) if tomorrow_prices_vat else None
+
         return {
             "prices": prices,
             "current_price": current_price,
@@ -334,4 +421,8 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             "today_min_price": today_min,
             "today_max_price_vat": today_max_vat,
             "today_min_price_vat": today_min_vat,
+            "tomorrow_max_price": tomorrow_max,
+            "tomorrow_min_price": tomorrow_min,
+            "tomorrow_max_price_vat": tomorrow_max_vat,
+            "tomorrow_min_price_vat": tomorrow_min_vat,
         }

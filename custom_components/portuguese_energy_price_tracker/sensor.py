@@ -1,7 +1,7 @@
 """Sensor platform for Energy Price Tracker integration."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from typing import Any
 
@@ -13,6 +13,7 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CURRENCY_EURO, UnitOfEnergy
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -38,6 +39,12 @@ async def async_setup_entry(
         EnergyPriceTodayMaxVATSensor(coordinator, entry),
         EnergyPriceTodayMinSensor(coordinator, entry),
         EnergyPriceTodayMinVATSensor(coordinator, entry),
+        EnergyPriceTomorrowMaxSensor(coordinator, entry),
+        EnergyPriceTomorrowMaxVATSensor(coordinator, entry),
+        EnergyPriceTomorrowMinSensor(coordinator, entry),
+        EnergyPriceTomorrowMinVATSensor(coordinator, entry),
+        EnergyPriceTodayPricesSensor(coordinator, entry),
+        EnergyPriceTomorrowPricesSensor(coordinator, entry),
         EnergyPriceAllPricesSensor(coordinator, entry),
     ]
 
@@ -56,6 +63,10 @@ async def async_setup_entry(
             ActiveProviderTodayMaxVATSensor(hass),
             ActiveProviderTodayMinSensor(hass),
             ActiveProviderTodayMinVATSensor(hass),
+            ActiveProviderTomorrowMaxSensor(hass),
+            ActiveProviderTomorrowMaxVATSensor(hass),
+            ActiveProviderTomorrowMinSensor(hass),
+            ActiveProviderTomorrowMinVATSensor(hass),
             ActiveProviderAllPricesSensor(hass),
         ])
 
@@ -313,8 +324,262 @@ class EnergyPriceTodayMinVATSensor(EnergyPriceBaseSensor):
         return attrs
 
 
+class EnergyPriceTomorrowMaxSensor(EnergyPriceBaseSensor):
+    """Sensor for tomorrow's maximum energy price."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tomorrow_max_price")
+        self._attr_name = "Tomorrow Max Price"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's maximum price."""
+        if not self.coordinator.data:
+            return None
+
+        tomorrow_max = self.coordinator.data.get("tomorrow_max_price")
+        if tomorrow_max is not None:
+            return round(float(tomorrow_max), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["period"] = "tomorrow"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTomorrowMaxVATSensor(EnergyPriceBaseSensor):
+    """Sensor for tomorrow's maximum energy price with VAT."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tomorrow_max_price_vat")
+        self._attr_name = "Tomorrow Max Price VAT"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's maximum price with VAT."""
+        if not self.coordinator.data:
+            return None
+
+        tomorrow_max_vat = self.coordinator.data.get("tomorrow_max_price_vat")
+        if tomorrow_max_vat is not None:
+            return round(float(tomorrow_max_vat), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["vat_included"] = True
+        attrs["period"] = "tomorrow"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTomorrowMinSensor(EnergyPriceBaseSensor):
+    """Sensor for tomorrow's minimum energy price."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tomorrow_min_price")
+        self._attr_name = "Tomorrow Min Price"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's minimum price."""
+        if not self.coordinator.data:
+            return None
+
+        tomorrow_min = self.coordinator.data.get("tomorrow_min_price")
+        if tomorrow_min is not None:
+            return round(float(tomorrow_min), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["period"] = "tomorrow"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTomorrowMinVATSensor(EnergyPriceBaseSensor):
+    """Sensor for tomorrow's minimum energy price with VAT."""
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tomorrow_min_price_vat")
+        self._attr_name = "Tomorrow Min Price VAT"
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's minimum price with VAT."""
+        if not self.coordinator.data:
+            return None
+
+        tomorrow_min_vat = self.coordinator.data.get("tomorrow_min_price_vat")
+        if tomorrow_min_vat is not None:
+            return round(float(tomorrow_min_vat), 4)
+
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        attrs = super().extra_state_attributes
+        attrs["vat_included"] = True
+        attrs["period"] = "tomorrow"
+        attrs["last_update"] = datetime.now().isoformat()
+        return attrs
+
+
+class EnergyPriceTodayPricesSensor(EnergyPriceBaseSensor):
+    """Sensor containing today's price datapoints with ALL fields."""
+
+    _unrecorded_attributes = frozenset({"prices"})
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "today_prices")
+        self._attr_name = "Today Prices"
+        self._attr_icon = "mdi:calendar-today"
+
+    @property
+    def native_value(self) -> int:
+        """Return the count of today's price points."""
+        if not self.coordinator.data:
+            return 0
+
+        from homeassistant.util import dt as dt_util
+        prices = self.coordinator.data.get("prices", [])
+        today = dt_util.now().date()
+
+        today_prices = [p for p in prices if datetime.fromisoformat(p["datetime"]).date() == today]
+        return len(today_prices)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return today's price datapoints with ALL fields preserved."""
+        from homeassistant.util import dt as dt_util
+
+        attrs = super().extra_state_attributes
+
+        if self.coordinator.data:
+            all_prices = self.coordinator.data.get("prices", [])
+            now = dt_util.now()
+            today = now.date()
+
+            today_prices = []
+            for p in all_prices:
+                dt_obj = datetime.fromisoformat(p["datetime"])
+                if dt_obj.date() == today:
+                    # Keep ALL fields - no data loss
+                    today_prices.append({
+                        "datetime": p["datetime"],
+                        "interval": p["interval"],
+                        "price": p["price"],
+                        "price_w_vat": p["price_w_vat"],
+                        "market_price": p["market_price"],
+                        "tar_cost": p["tar_cost"],
+                    })
+
+            attrs["prices"] = today_prices
+            attrs["data_points"] = len(today_prices)
+            attrs["last_update"] = datetime.now().isoformat()
+
+            if today_prices:
+                attrs["first_timestamp"] = today_prices[0]["datetime"]
+                attrs["last_timestamp"] = today_prices[-1]["datetime"]
+
+        return attrs
+
+
+class EnergyPriceTomorrowPricesSensor(EnergyPriceBaseSensor):
+    """Sensor containing tomorrow's price datapoints with ALL fields."""
+
+    _unrecorded_attributes = frozenset({"prices"})
+
+    def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, entry, "tomorrow_prices")
+        self._attr_name = "Tomorrow Prices"
+        self._attr_icon = "mdi:calendar-arrow-right"
+
+    @property
+    def native_value(self) -> int:
+        """Return the count of tomorrow's price points."""
+        if not self.coordinator.data:
+            return 0
+
+        from homeassistant.util import dt as dt_util
+        prices = self.coordinator.data.get("prices", [])
+        tomorrow = (dt_util.now() + timedelta(days=1)).date()
+
+        tomorrow_prices = [p for p in prices if datetime.fromisoformat(p["datetime"]).date() == tomorrow]
+        return len(tomorrow_prices)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return tomorrow's price datapoints with ALL fields preserved."""
+        from homeassistant.util import dt as dt_util
+
+        attrs = super().extra_state_attributes
+
+        if self.coordinator.data:
+            all_prices = self.coordinator.data.get("prices", [])
+            now = dt_util.now()
+            tomorrow = (now + timedelta(days=1)).date()
+
+            tomorrow_prices = []
+            for p in all_prices:
+                dt_obj = datetime.fromisoformat(p["datetime"])
+                if dt_obj.date() == tomorrow:
+                    # Keep ALL fields - no data loss
+                    tomorrow_prices.append({
+                        "datetime": p["datetime"],
+                        "interval": p["interval"],
+                        "price": p["price"],
+                        "price_w_vat": p["price_w_vat"],
+                        "market_price": p["market_price"],
+                        "tar_cost": p["tar_cost"],
+                    })
+
+            attrs["prices"] = tomorrow_prices
+            attrs["data_points"] = len(tomorrow_prices)
+            attrs["last_update"] = datetime.now().isoformat()
+
+            if tomorrow_prices:
+                attrs["first_timestamp"] = tomorrow_prices[0]["datetime"]
+                attrs["last_timestamp"] = tomorrow_prices[-1]["datetime"]
+
+        return attrs
+
+
 class EnergyPriceAllPricesSensor(EnergyPriceBaseSensor):
-    """Sensor containing all price datapoints fetched from API."""
+    """Sensor containing all price datapoints fetched from API.
+
+    This sensor excludes the 'prices' attribute from recorder to avoid 16KB database limit.
+    All data remains available to frontend (charts, dashboards) but won't be stored in history.
+    """
+
+    _unrecorded_attributes = frozenset({"prices"})
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
@@ -333,7 +598,11 @@ class EnergyPriceAllPricesSensor(EnergyPriceBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return today's price datapoints as attributes (to avoid exceeding 16KB DB limit)."""
+        """Return today and tomorrow's price datapoints with ALL fields preserved.
+
+        The 'prices' attribute is excluded from recorder (see __init__.py) to avoid
+        16KB database limit while keeping all data available to frontend for charts.
+        """
         from homeassistant.util import dt as dt_util
 
         attrs = super().extra_state_attributes
@@ -341,30 +610,50 @@ class EnergyPriceAllPricesSensor(EnergyPriceBaseSensor):
         if self.coordinator.data:
             all_prices = self.coordinator.data.get("prices", [])
 
-            # Filter to only today's prices to stay under 16KB limit
-            today = dt_util.now().date()
-            today_prices = []
+            # Filter to show today + tomorrow (48-hour window)
+            now = dt_util.now()
+            today = now.date()
+            tomorrow = (now + timedelta(days=1)).date()
+
+            visible_prices = []
+            today_count = 0
+            tomorrow_count = 0
+
             for p in all_prices:
                 dt_obj = datetime.fromisoformat(p["datetime"])
                 if dt_obj.date() == today:
-                    # Strip timezone from datetime string for compatibility with automations
-                    price_entry = p.copy()
-                    price_entry["datetime"] = dt_obj.strftime("%Y-%m-%dT%H:%M:%S")
-                    today_prices.append(price_entry)
+                    # Keep ALL fields - no data loss
+                    visible_prices.append({
+                        "datetime": p["datetime"],
+                        "interval": p["interval"],
+                        "price": p["price"],
+                        "price_w_vat": p["price_w_vat"],
+                        "market_price": p["market_price"],
+                        "tar_cost": p["tar_cost"],
+                    })
+                    today_count += 1
+                elif dt_obj.date() == tomorrow:
+                    # Keep ALL fields for tomorrow too
+                    visible_prices.append({
+                        "datetime": p["datetime"],
+                        "interval": p["interval"],
+                        "price": p["price"],
+                        "price_w_vat": p["price_w_vat"],
+                        "market_price": p["market_price"],
+                        "tar_cost": p["tar_cost"],
+                    })
+                    tomorrow_count += 1
 
-            attrs["prices"] = today_prices
-            attrs["data_points_today"] = len(today_prices)
+            attrs["prices"] = visible_prices
+            attrs["data_points_today"] = today_count
+            attrs["data_points_tomorrow"] = tomorrow_count
             attrs["data_points_total"] = len(all_prices)
             attrs["last_update"] = datetime.now().isoformat()
 
-            # Add first and last timestamp for today's data
-            if today_prices:
-                attrs["first_timestamp"] = today_prices[0].get("datetime")
-                attrs["last_timestamp"] = today_prices[-1].get("datetime")
-
-            # Note about historical data
-            if len(all_prices) > len(today_prices):
-                attrs["note"] = "Only today's prices shown in attributes. Use refresh_data service for historical data."
+            # Add first and last timestamp for visible data
+            if visible_prices:
+                attrs["first_timestamp"] = visible_prices[0]["datetime"]
+                attrs["last_timestamp"] = visible_prices[-1]["datetime"]
 
         return attrs
 
@@ -414,8 +703,8 @@ class ActiveProviderBaseSensor(SensorEntity):
 
         active_provider = self._hass.states.get(select_entity_id)
 
-        if not active_provider or not active_provider.state:
-            _LOGGER.debug(f"Active provider select entity not found or has no state")
+        if not active_provider or not active_provider.state or active_provider.state in ["unknown", "unavailable"]:
+            _LOGGER.debug(f"Active provider select entity not ready (state={active_provider.state if active_provider else 'None'})")
             return None
 
         selected_display_name = active_provider.state
@@ -435,12 +724,24 @@ class ActiveProviderBaseSensor(SensorEntity):
             if hasattr(coordinator, "display_name"):
                 _LOGGER.debug(f"  Found coordinator with display_name: {coordinator.display_name}")
                 if coordinator.display_name == selected_display_name:
-                    # Found the matching coordinator, build entity ID from display_name
-                    # The display_name is already in slug format (e.g., "G9_bihorario_semanal")
-                    display_slug = selected_display_name.lower()
-                    entity_id = f"sensor.{display_slug}_{suffix}"
-                    _LOGGER.debug(f"Matched! Built entity_id: {entity_id}")
-                    return entity_id
+                    # Found the matching coordinator
+                    # Instead of building entity_id, look it up in entity registry
+                    # The unique_id format is: f"{DOMAIN}_{slug}_{suffix}"
+                    # where slug comes from provider/tariff combination
+
+                    entity_reg = er.async_get(self._hass)
+
+                    # Search for entity with matching unique_id pattern
+                    for entity in entity_reg.entities.values():
+                        if (entity.platform == DOMAIN and
+                            entity.unique_id and
+                            entity.unique_id.endswith(f"_{suffix}") and
+                            entity.config_entry_id == entry_id):
+                            _LOGGER.debug(f"Matched! Found entity_id: {entity.entity_id}")
+                            return entity.entity_id
+
+                    _LOGGER.warning(f"Found coordinator but no matching entity for suffix '{suffix}'")
+                    return None
 
         _LOGGER.warning(f"No coordinator found matching display_name: {selected_display_name}")
         return None
@@ -524,7 +825,7 @@ class ActiveProviderCurrentVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return the current price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("current_price_with_vat")
+        entity_id = self._get_active_provider_entity("current_price_vat")
         if not entity_id:
             return None
 
@@ -549,7 +850,7 @@ class ActiveProviderTodayMaxSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's max price from active provider."""
-        entity_id = self._get_active_provider_entity("today_s_maximum_price")
+        entity_id = self._get_active_provider_entity("today_max_price")
         if not entity_id:
             return None
 
@@ -574,7 +875,7 @@ class ActiveProviderTodayMaxVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's max price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("today_s_maximum_price_with_vat")
+        entity_id = self._get_active_provider_entity("today_max_price_vat")
         if not entity_id:
             return None
 
@@ -599,7 +900,7 @@ class ActiveProviderTodayMinSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's min price from active provider."""
-        entity_id = self._get_active_provider_entity("today_s_minimum_price")
+        entity_id = self._get_active_provider_entity("today_min_price")
         if not entity_id:
             return None
 
@@ -624,7 +925,7 @@ class ActiveProviderTodayMinVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's min price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("today_s_minimum_price_with_vat")
+        entity_id = self._get_active_provider_entity("today_min_price_vat")
         if not entity_id:
             return None
 
@@ -639,6 +940,8 @@ class ActiveProviderTodayMinVATSensor(ActiveProviderBaseSensor):
 
 class ActiveProviderAllPricesSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's all prices."""
+
+    _unrecorded_attributes = frozenset({"prices"})
 
     def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
@@ -682,3 +985,103 @@ class ActiveProviderAllPricesSensor(ActiveProviderBaseSensor):
                     attrs["last_timestamp"] = state.attributes["last_timestamp"]
 
         return attrs
+
+
+class ActiveProviderTomorrowMaxSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's tomorrow max price."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "tomorrow_max_price", "Active Provider Tomorrow Max Price")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's max price from active provider."""
+        entity_id = self._get_active_provider_entity("tomorrow_max_price")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTomorrowMaxVATSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's tomorrow max price with VAT."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "tomorrow_max_price_with_vat", "Active Provider Tomorrow Max Price with VAT")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's max price with VAT from active provider."""
+        entity_id = self._get_active_provider_entity("tomorrow_max_price_vat")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTomorrowMinSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's tomorrow min price."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "tomorrow_min_price", "Active Provider Tomorrow Min Price")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's min price from active provider."""
+        entity_id = self._get_active_provider_entity("tomorrow_min_price")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None
+
+
+class ActiveProviderTomorrowMinVATSensor(ActiveProviderBaseSensor):
+    """Generic sensor for active provider's tomorrow min price with VAT."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the sensor."""
+        super().__init__(hass, "tomorrow_min_price_with_vat", "Active Provider Tomorrow Min Price with VAT")
+        self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
+        self._attr_device_class = SensorDeviceClass.MONETARY
+
+    @property
+    def native_value(self) -> float | None:
+        """Return tomorrow's min price with VAT from active provider."""
+        entity_id = self._get_active_provider_entity("tomorrow_min_price_vat")
+        if not entity_id:
+            return None
+
+        state = self._hass.states.get(entity_id)
+        if state and state.state not in ["unknown", "unavailable"]:
+            try:
+                return float(state.state)
+            except (ValueError, TypeError):
+                return None
+        return None

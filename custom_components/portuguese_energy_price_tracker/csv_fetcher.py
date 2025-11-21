@@ -306,6 +306,15 @@ class CSVDataFetcher:
         """
         Get prices for provider/tariff, optionally for a specific date.
 
+        The GitHub CSV always contains 2 days:
+        - Today: Complete data (96 intervals)
+        - Tomorrow: Incomplete data (only intervals published so far)
+
+        Caching strategy:
+        - Today's data: Cache to disk when complete (96 data points)
+        - Tomorrow's data: Keep in memory cache only, don't persist
+        - Past dates: Fetch from Git history only when explicitly requested
+
         Args:
             provider: Provider name
             tariff: Tariff code (e.g., BIHORARIO_SEMANAL)
@@ -320,37 +329,110 @@ class CSVDataFetcher:
             target_date = datetime.now()
 
         date_key = target_date.strftime("%Y-%m-%d")
+        is_today = target_date.date() == datetime.now().date()
+        is_tomorrow = target_date.date() == (datetime.now() + timedelta(days=1)).date()
+        is_past = target_date.date() < datetime.now().date()
 
-        # Check cache first (unless bypassing)
+        # Check memory cache first (unless bypassing)
         cached_data = self.cache.get(date_key, bypass_cache=bypass_cache)
         if cached_data:
             prices = cached_data.get(f"{provider}_{tariff}")
             if prices is not None:
+                _LOGGER.debug(f"Using cached data for {date_key} ({len(prices)} entries)")
                 return prices
 
-        # Try loading from local file first
         csv_content = None
-        if not bypass_cache:
-            csv_content = await self.load_from_local(target_date)
 
-        # Fetch from GitHub if not in local cache
-        if csv_content is None:
-            is_today = target_date.date() == datetime.now().date()
+        # For past dates, always fetch from Git history (unless we have a complete local cache)
+        if is_past:
+            if not bypass_cache:
+                csv_content = await self.load_from_local(target_date)
 
-            if is_today:
-                # Fetch current file
-                csv_content = await self.fetch_current_csv(bypass_cache=bypass_cache)
-            else:
-                # Fetch from Git history
+            if csv_content is None:
+                _LOGGER.info(f"Fetching historical data for {date_key} from Git history")
                 csv_content = await self.fetch_historical_csv(target_date)
+                # Save past dates to local cache
+                await self.save_to_local(target_date, csv_content)
 
-            # Save to local
-            self.save_to_local(target_date, csv_content)
+        # For today/tomorrow, always fetch from current CSV (contains both days)
+        else:
+            # Try loading today from local file first (if it's complete)
+            if is_today and not bypass_cache:
+                csv_content = await self.load_from_local(target_date)
+                if csv_content:
+                    # Check if cached data is complete (96 data points expected)
+                    temp_prices_all = self.parse_csv(csv_content, provider, tariff, vat_rate)
 
-        # Parse CSV
-        prices = self.parse_csv(csv_content, provider, tariff, vat_rate)
+                    # Filter to only today's date (CSV may contain multiple days)
+                    temp_prices = []
+                    for p in temp_prices_all:
+                        dt_obj = datetime.fromisoformat(p["datetime"])
+                        if dt_obj.date() == target_date.date():
+                            temp_prices.append(p)
 
-        # Cache the result
+                    if len(temp_prices) >= 96:
+                        _LOGGER.debug(f"Using complete cached data for today ({len(temp_prices)} entries)")
+                        prices = temp_prices
+                        # Cache in memory too
+                        if date_key not in self.cache._cache:
+                            self.cache._cache[date_key] = {}
+                        self.cache._cache[date_key][f"{provider}_{tariff}"] = prices
+                        self.cache._cache_times[date_key] = datetime.now()
+                        return prices
+                    else:
+                        _LOGGER.debug(f"Cached today data incomplete ({len(temp_prices)} entries), fetching fresh")
+
+            # Fetch current CSV (has both today and tomorrow)
+            _LOGGER.info(f"Fetching current CSV for {date_key}")
+            csv_content = await self.fetch_current_csv(bypass_cache=bypass_cache)
+
+        # Parse CSV for the requested date
+        all_prices = self.parse_csv(csv_content, provider, tariff, vat_rate)
+
+        # Filter prices to only include the requested date
+        prices = []
+        for p in all_prices:
+            dt_obj = datetime.fromisoformat(p["datetime"])
+            if dt_obj.date() == target_date.date():
+                prices.append(p)
+
+        _LOGGER.info(f"Parsed {len(prices)} price entries for {date_key}")
+
+        # Smart disk persistence: only save if new data has more points than existing cache
+        # This ensures we don't overwrite complete data with incomplete data
+        should_save = False
+
+        if is_past:
+            # Past dates are already saved above
+            pass
+        elif is_today or is_tomorrow:
+            # Check if we should save this data
+            existing_file = await self.load_from_local(target_date)
+            if existing_file:
+                # Parse existing to count data points
+                existing_prices = self.parse_csv(existing_file, provider, tariff, vat_rate)
+                existing_for_date = [p for p in existing_prices if datetime.fromisoformat(p["datetime"]).date() == target_date.date()]
+
+                if len(prices) > len(existing_for_date):
+                    _LOGGER.debug(
+                        f"New data has more points ({len(prices)}) than existing ({len(existing_for_date)}), "
+                        f"saving to disk"
+                    )
+                    should_save = True
+                else:
+                    _LOGGER.debug(
+                        f"Existing data already has {len(existing_for_date)} points, "
+                        f"not overwriting with {len(prices)} points"
+                    )
+            else:
+                # No existing file, save new data
+                _LOGGER.debug(f"No existing cache, saving {len(prices)} entries to disk")
+                should_save = True
+
+            if should_save:
+                await self.save_to_local(target_date, csv_content)
+
+        # Cache the result in memory
         if date_key not in self.cache._cache:
             self.cache._cache[date_key] = {}
         self.cache._cache[date_key][f"{provider}_{tariff}"] = prices
