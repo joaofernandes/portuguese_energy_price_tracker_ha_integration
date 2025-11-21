@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+
+- **Enhanced logging for data fetch debugging**: Added detailed INFO-level logs to track today/tomorrow data fetching
+  - Logs exact counts: "Fetched N prices for TODAY/TOMORROW"
+  - Warns when tomorrow's data is empty (helps diagnose reload issues)
+  - Better error logging with stack traces
+  - Makes it clear when tomorrow's data is missing vs. successfully fetched
 - **Automatic HACS installation**: Docker development container now auto-installs HACS on first startup
   - No manual installation needed - just `docker-compose up -d`
   - Checks for HACS presence and installs if missing
@@ -35,6 +41,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ApexCharts visualization examples for provider comparison in `examples/` directory
 
 ### Fixed
+
+- **Select entity unique ID collision**: Fixed "ID active_provider already exists" error
+  - Enhanced migration to find and remove orphaned entities from old domain
+  - Now searches both current and old domain names
+  - Scans for entities with no config_entry_id (orphaned)
+  - Removes all duplicates before creating fresh select entity
 - **Critical**: Fixed missing imports in sensor.py
   - Added missing `timedelta` import (fixed all_prices sensor crashes)
   - Added missing `entity_registry as er` import (fixed routing sensor crashes)

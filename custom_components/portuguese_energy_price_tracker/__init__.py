@@ -230,6 +230,14 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from GitHub CSV (both today and tomorrow)."""
         try:
+            today_date = datetime.now().date()
+            tomorrow_date = (datetime.now() + timedelta(days=1)).date()
+
+            _LOGGER.info(
+                f"[UPDATE] Starting data fetch for {self.display_name} - "
+                f"Today: {today_date}, Tomorrow: {tomorrow_date}"
+            )
+
             # Fetch today's prices
             today_prices = await self.csv_fetcher.get_prices(
                 provider=self.provider,
@@ -238,6 +246,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 target_date=None,  # Today
                 bypass_cache=False,
             )
+            _LOGGER.info(f"[UPDATE] Fetched {len(today_prices)} prices for TODAY ({today_date})")
 
             # Fetch tomorrow's prices
             tomorrow = datetime.now() + timedelta(days=1)
@@ -248,18 +257,26 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 target_date=tomorrow,
                 bypass_cache=False,
             )
+            _LOGGER.info(f"[UPDATE] Fetched {len(tomorrow_prices)} prices for TOMORROW ({tomorrow_date})")
 
             # Combine today and tomorrow prices
             all_prices = today_prices + tomorrow_prices
-            _LOGGER.debug(
-                f"Fetched {len(today_prices)} prices for today, "
-                f"{len(tomorrow_prices)} prices for tomorrow "
-                f"(total: {len(all_prices)})"
+            _LOGGER.info(
+                f"[UPDATE] Combined data for {self.display_name}: "
+                f"Today={len(today_prices)}, Tomorrow={len(tomorrow_prices)}, Total={len(all_prices)}"
             )
+
+            if len(tomorrow_prices) == 0:
+                _LOGGER.warning(
+                    f"[UPDATE] ⚠️  No prices found for tomorrow ({tomorrow_date})! "
+                    f"Tomorrow's sensors will show 'Unknown'. This may be normal if tomorrow's "
+                    f"data hasn't been published yet (usually available after 13:00 CET)."
+                )
 
             return self._process_prices(all_prices)
 
         except Exception as err:
+            _LOGGER.error(f"[UPDATE] Error fetching data for {self.display_name}: {err}", exc_info=True)
             raise UpdateFailed(f"Error fetching data: {err}")
 
     async def refresh_data(self, target_date: datetime | None = None, bypass_cache: bool = False):
