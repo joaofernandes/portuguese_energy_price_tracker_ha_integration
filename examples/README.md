@@ -1,6 +1,6 @@
 # Dashboard Examples
 
-This directory contains example Lovelace dashboards for visualizing energy price data from the Portuguese Energy Price Tracker integration.
+This directory contains example card configurations for visualizing energy price data from the Portuguese Energy Price Tracker integration.
 
 ## Prerequisites
 
@@ -12,57 +12,54 @@ This directory contains example Lovelace dashboards for visualizing energy price
 
 ### [energy_price_comparison.yaml](energy_price_comparison.yaml)
 
-A comprehensive dashboard comparing two energy providers side-by-side.
+A complete **section** for comparing two energy providers side-by-side. This is a single grid section containing 3 organized cards.
 
-**Features:**
-- 24-hour price comparison line chart (stepline)
-- Price difference visualization (area chart with color thresholds)
-- Daily statistics (min/avg/max) for both providers
-- Real-time "Now" indicator
-- Automatic data extraction from sensor attributes
-
-**Dashboard Sections:**
-1. **Main Comparison Chart** - Overlays both providers' prices
-2. **Price Difference Chart** - Shows Coopernico minus G9 with color coding:
+**Includes:**
+1. **Main Comparison Chart** - 24-hour price comparison line chart (stepline)
+2. **Price Difference Chart** - Area chart showing price differences with color coding:
    - Green: Coopernico is cheaper
    - Yellow: Break-even
    - Red: Coopernico is more expensive
-3. **Daily Statistics** - Min/Avg/Max prices for each provider
+3. **Daily Statistics Grid** - Min/Avg/Max prices for both providers (2 columns)
+
+**Features:**
+- Real-time "Now" indicator
+- 3 decimal place precision (e.g., 0.152 €)
+- Automatic data extraction from sensor attributes
+- Organized in a single collapsible section with title
+- Responsive layout
 
 ## Installation
 
-### Option 1: Manual Dashboard (Recommended for Testing)
+### Adding Section to Your Dashboard (Recommended)
 
-1. Copy the dashboard content from `energy_price_comparison.yaml`
-2. In Home Assistant, go to **Settings → Dashboards**
-3. Click **Add Dashboard** → **New dashboard from scratch**
-4. Name it "Energy Price Comparison"
-5. Click the ⋮ menu → **Edit Dashboard** → **Raw configuration editor**
-6. Paste the content and save
+1. Open Home Assistant and navigate to your dashboard
+2. Click **Edit Dashboard** (pencil icon in top right)
+3. Click **Add Card** at the bottom
+4. Select **Manual** or click the YAML editor icon
+5. Copy the **entire content** from `energy_price_comparison.yaml`
+6. Paste it into the editor
+7. Click **Save**
 
-### Option 2: YAML Dashboard Mode
+This adds one section titled "Energy Price Comparison" containing all 3 cards organized together.
 
-If you use YAML mode for dashboards:
+### Using in YAML Mode Dashboards
 
-1. Copy `energy_price_comparison.yaml` to your Home Assistant config:
-   ```bash
-   cp energy_price_comparison.yaml /config/dashboards/
-   ```
+If you use YAML mode for dashboards, add the section to your view's `cards:` array:
 
-2. Add to your `configuration.yaml`:
-   ```yaml
-   lovelace:
-     mode: storage
-     dashboards:
-       energy-price-comparison:
-         mode: yaml
-         title: Energy Price Comparison
-         icon: mdi:chart-line
-         show_in_sidebar: true
-         filename: dashboards/energy_price_comparison.yaml
-   ```
-
-3. Restart Home Assistant
+```yaml
+views:
+  - title: Energy Prices
+    path: energy-prices
+    cards:
+      # Paste the entire section here
+      - type: grid
+        title: Energy Price Comparison
+        columns: 1
+        cards:
+          - type: custom:apexcharts-card
+            # ... (full section content)
+```
 
 ## Customization
 
