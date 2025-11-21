@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ApexCharts not updating when changing active provider**: Fixed routing sensors to force state refresh when select entity changes
+  - Changed `_update_callback` to use `force_refresh=True` when `select.active_energy_provider` changes
+  - Ensures Home Assistant notifies frontend about state updates even if values appear similar
+  - ApexCharts and other UI components now receive immediate updates when switching providers
 - **Active Provider (generic) sensors not working**: Fixed routing sensors not finding select entity
   - Changed unique_id lookup from `portuguese_energy_price_tracker_active_provider` to `active_provider`
   - Matches the select entity unique_id changed in v2.2.1

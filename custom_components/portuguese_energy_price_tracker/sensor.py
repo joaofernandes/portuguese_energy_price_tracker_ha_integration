@@ -751,9 +751,15 @@ class ActiveProviderBaseSensor(SensorEntity):
         await super().async_added_to_hass()
 
         @callback
-        def _update_callback(event=None):
+        def _update_callback(event):
             """Update when provider changes or provider sensor updates."""
-            self.async_schedule_update_ha_state(force_refresh=False)
+            # Force refresh when select entity changes to ensure charts update
+            # This is critical for ApexCharts and other UI components that watch attributes
+            if event and event.data.get("entity_id") == "select.active_energy_provider":
+                _LOGGER.debug(f"Active provider changed, forcing state refresh for {self._attr_name}")
+                self.async_schedule_update_ha_state(force_refresh=True)
+            else:
+                self.async_schedule_update_ha_state(force_refresh=False)
 
         # Subscribe to all state changes (we'll filter for our select entity dynamically)
         self.async_on_remove(
