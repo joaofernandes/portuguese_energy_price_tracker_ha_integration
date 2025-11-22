@@ -6,6 +6,8 @@
 
 A Home Assistant custom integration that tracks real-time electricity prices for Portuguese energy providers. Get hourly energy prices from multiple providers including Coopérnico GO, G9 Smart Dynamic, and Alfa Power Index.
 
+📊 **[View Data Flow Architecture](docs/DATA_FLOW.md)** - Comprehensive diagram showing how data flows through the integration
+
 ## Features
 
 - **Real-time Energy Prices**: Fetches hourly electricity prices directly from GitHub CSV data source
