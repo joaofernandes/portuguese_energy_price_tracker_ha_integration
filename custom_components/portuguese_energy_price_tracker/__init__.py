@@ -394,11 +394,11 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 f"Today={len(today_prices)}, Tomorrow={len(tomorrow_prices)}, Total={len(all_prices)}"
             )
 
+            # Debug log if tomorrow's data is empty (no warning - sensors will use default values)
             if len(tomorrow_prices) == 0:
-                _LOGGER.warning(
-                    f"[UPDATE] ⚠️  No prices found for tomorrow ({tomorrow_date})! "
-                    f"Tomorrow's sensors will show 'Unknown'. This may be normal if tomorrow's "
-                    f"data hasn't been published yet (usually available after 13:00 CET)."
+                _LOGGER.debug(
+                    f"[UPDATE] No prices available for tomorrow ({tomorrow_date}). "
+                    f"Tomorrow's sensors will use default values (typically 0 for prices, empty for arrays)."
                 )
 
             return self._process_prices(all_prices)
