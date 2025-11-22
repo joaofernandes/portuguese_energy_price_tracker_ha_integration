@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enable Debug Logging option**: New configuration option to enable detailed DEBUG-level logging for troubleshooting
+  - Available in integration configuration UI under "Configure"
+  - When enabled, shows all INFO and DEBUG level logs for the integration
+  - Dynamically adjusts logging level for all integration modules (sensors, csv_fetcher, select)
+  - Helps diagnose data fetch issues, sensor updates, and cache behavior
+  - Can be toggled without restarting Home Assistant (just reload the integration)
+  - Default: disabled (only shows INFO, WARNING, and ERROR logs)
 - **Smart cache bypass for tomorrow's data after 1 PM**: Automatically bypasses cache when fetching tomorrow's data after 13:00 (1 PM)
   - After 1 PM, the integration always tries to fetch fresh data from GitHub for tomorrow's prices
   - Continues retrying with cache bypass on each update cycle until tomorrow's data is successfully fetched

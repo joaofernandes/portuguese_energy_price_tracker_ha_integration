@@ -14,10 +14,32 @@ from homeassistant.util import dt as dt_util
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
-from .const import DOMAIN, SCAN_INTERVAL
+from .const import CONF_ENABLE_DEBUG, DEFAULT_ENABLE_DEBUG, DOMAIN, SCAN_INTERVAL
 from .csv_fetcher import CSVDataFetcher
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _set_logger_level(enable_debug: bool) -> None:
+    """Set the logger level for the integration."""
+    level = logging.DEBUG if enable_debug else logging.INFO
+    _LOGGER.setLevel(level)
+
+    # Also set level for csv_fetcher logger
+    csv_fetcher_logger = logging.getLogger(f"{__name__.rsplit('.', 1)[0]}.csv_fetcher")
+    csv_fetcher_logger.setLevel(level)
+
+    # And for sensor logger
+    sensor_logger = logging.getLogger(f"{__name__.rsplit('.', 1)[0]}.sensor")
+    sensor_logger.setLevel(level)
+
+    # And for select logger
+    select_logger = logging.getLogger(f"{__name__.rsplit('.', 1)[0]}.select")
+    select_logger.setLevel(level)
+
+    _LOGGER.info(
+        f"Debug logging {'enabled' if enable_debug else 'disabled'} for {DOMAIN}"
+    )
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.SELECT]
 
@@ -167,6 +189,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Price Tracker from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
+    # Set debug logging level based on config
+    enable_debug = entry.data.get(CONF_ENABLE_DEBUG, DEFAULT_ENABLE_DEBUG)
+    _set_logger_level(enable_debug)
+
     # Run one-time migrations (version tracked per config entry)
     await _async_migrate_entities(hass, entry)
 
@@ -174,6 +200,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    # Register update listener for options changes
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -235,6 +264,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update."""
+    # Merge options into entry data
+    new_data = {**entry.data, **entry.options}
+
+    # Update the config entry with merged data
+    hass.config_entries.async_update_entry(entry, data=new_data, options={})
+
+    # Update debug logging level if it changed
+    enable_debug = new_data.get(CONF_ENABLE_DEBUG, DEFAULT_ENABLE_DEBUG)
+    _set_logger_level(enable_debug)
+
+    # Reload the entry to apply other changes
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

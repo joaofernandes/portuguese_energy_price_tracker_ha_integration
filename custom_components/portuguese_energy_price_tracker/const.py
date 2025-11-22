@@ -9,12 +9,14 @@ CONF_TARIFF: Final = "tariff"
 CONF_DISPLAY_NAME: Final = "display_name"
 CONF_VAT: Final = "vat"
 CONF_INCLUDE_VAT: Final = "include_vat"
+CONF_ENABLE_DEBUG: Final = "enable_debug"
 
 # Defaults
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes
 SCAN_INTERVAL: Final = DEFAULT_SCAN_INTERVAL
 DEFAULT_VAT: Final = 23
 DEFAULT_INCLUDE_VAT: Final = True
+DEFAULT_ENABLE_DEBUG: Final = False
 
 # Supported providers and their tariffs (from GitHub CSV)
 PROVIDERS: Final = {
