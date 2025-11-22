@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **"NoneType can't be used in await expression" error in production**: Added validation checks for csv_fetcher initialization
+  - Added defensive checks to ensure csv_fetcher is properly initialized before use
+  - Provides clear error messages if csv_fetcher is None or missing get_prices method
+  - Helps diagnose initialization issues that only occur in production environments
 - **"No longer being provided" error for ActiveProvider sensors**: Added migration v2 to clean up orphaned routing sensor entities
   - Automatically removes ActiveProvider routing sensors with incorrect unique_ids or missing config_entry_id
   - Prevents "This entity is no longer being provided by the integration" errors

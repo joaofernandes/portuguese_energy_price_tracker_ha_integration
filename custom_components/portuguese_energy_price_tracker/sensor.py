@@ -755,11 +755,23 @@ class ActiveProviderBaseSensor(SensorEntity):
             """Update when provider changes or provider sensor updates."""
             # Force refresh when select entity changes to ensure charts update
             # This is critical for ApexCharts and other UI components that watch attributes
-            if event and event.data.get("entity_id") == "select.active_energy_provider":
-                _LOGGER.debug(f"Active provider changed, forcing state refresh for {self._attr_name}")
-                self.async_schedule_update_ha_state(force_refresh=True)
-            else:
-                self.async_schedule_update_ha_state(force_refresh=False)
+            entity_id = event.data.get("entity_id")
+
+            if entity_id == "select.active_energy_provider":
+                old_state = event.data.get("old_state")
+                new_state = event.data.get("new_state")
+
+                # Only force refresh if the state actually changed
+                if old_state and new_state and old_state.state != new_state.state:
+                    _LOGGER.info(
+                        f"[ROUTING] Active provider changed from '{old_state.state}' to '{new_state.state}' - "
+                        f"forcing state refresh for {self._attr_name}"
+                    )
+                    self.async_schedule_update_ha_state(force_refresh=True)
+                    return
+
+            # For all other state changes, just schedule normal update
+            self.async_schedule_update_ha_state(force_refresh=False)
 
         # Subscribe to all state changes (we'll filter for our select entity dynamically)
         self.async_on_remove(

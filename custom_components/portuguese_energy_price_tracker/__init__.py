@@ -289,6 +289,13 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from GitHub CSV (both today and tomorrow)."""
         try:
+            # Validate csv_fetcher is initialized
+            if self.csv_fetcher is None:
+                raise ValueError("CSV fetcher not initialized")
+
+            if not hasattr(self.csv_fetcher, 'get_prices'):
+                raise ValueError(f"CSV fetcher has no get_prices method. Type: {type(self.csv_fetcher)}")
+
             today_date = datetime.now().date()
             tomorrow_date = (datetime.now() + timedelta(days=1)).date()
 
