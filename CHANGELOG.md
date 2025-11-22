@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Smart cache bypass for tomorrow's data after 1 PM**: Automatically bypasses cache when fetching tomorrow's data after 13:00 (1 PM)
+  - After 1 PM, the integration always tries to fetch fresh data from GitHub for tomorrow's prices
+  - Continues retrying with cache bypass on each update cycle until tomorrow's data is successfully fetched
+  - Ensures tomorrow's data is retrieved as soon as it's published (typically around 13:00 CET)
+  - Returns to normal caching behavior before 1 PM to reduce GitHub API calls
+  - Added INFO-level logging to indicate when cache bypass is active
+
 ### Fixed
 
 - **"NoneType can't be used in await expression" error in production**: Added validation checks for csv_fetcher initialization

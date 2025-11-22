@@ -314,16 +314,33 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             )
             _LOGGER.info(f"[UPDATE] Fetched {len(today_prices)} prices for TODAY ({today_date})")
 
-            # Fetch tomorrow's prices
-            tomorrow = datetime.now() + timedelta(days=1)
+            # Fetch tomorrow's prices with smart cache bypass after 1 PM
+            # After 1 PM, if tomorrow's data isn't available, we bypass cache
+            # and try to fetch fresh data from GitHub until it's available
+            now = datetime.now()
+            tomorrow = now + timedelta(days=1)
+
+            # Determine if we should bypass cache for tomorrow's data
+            # Bypass if: current time >= 13:00 (1 PM)
+            should_bypass_cache = now.hour >= 13
+
+            if should_bypass_cache:
+                _LOGGER.info(
+                    f"[UPDATE] Time is after 1 PM ({now.strftime('%H:%M')}) - "
+                    f"will bypass cache for tomorrow's data to ensure fresh fetch"
+                )
+
             tomorrow_prices = await self.csv_fetcher.get_prices(
                 provider=self.provider,
                 tariff=self.tariff,
                 vat_rate=self.vat,
                 target_date=tomorrow,
-                bypass_cache=False,
+                bypass_cache=should_bypass_cache,
             )
-            _LOGGER.info(f"[UPDATE] Fetched {len(tomorrow_prices)} prices for TOMORROW ({tomorrow_date})")
+            _LOGGER.info(
+                f"[UPDATE] Fetched {len(tomorrow_prices)} prices for TOMORROW ({tomorrow_date})"
+                f"{' (cache bypassed)' if should_bypass_cache else ''}"
+            )
 
             # Combine today and tomorrow prices
             all_prices = today_prices + tomorrow_prices
