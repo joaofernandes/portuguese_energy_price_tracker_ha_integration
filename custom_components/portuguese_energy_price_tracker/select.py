@@ -21,37 +21,54 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Energy Price Tracker select entity."""
-    # Only create the select entity once across all config entries
-    # Check if we already have a select entity by checking the entity registry
-    entity_reg = er.async_get(hass)
-    select_unique_id = "active_provider"
+    # Only create the select entity for the FIRST config entry (sorted by entry_id)
+    # This ensures it's tied to the same entry as routing sensors
+    all_entries = [e for e in hass.config_entries.async_entries(DOMAIN)]
+    all_entries_sorted = sorted(all_entries, key=lambda e: e.entry_id)
+
+    # Only create select entity if this is the first entry
+    if not all_entries_sorted or entry.entry_id != all_entries_sorted[0].entry_id:
+        _LOGGER.debug(f"Skipping select entity creation for entry {entry.entry_id} (not first entry)")
+        return
 
     # Check if select entity already exists in the registry
+    entity_reg = er.async_get(hass)
+    select_unique_id = "active_provider"
     existing_entity_id = entity_reg.async_get_entity_id("select", DOMAIN, select_unique_id)
 
     if existing_entity_id:
         _LOGGER.debug(f"Select entity already exists in registry ({existing_entity_id}), skipping creation")
         return
 
-    # Create the select entity (only on first config entry setup)
-    _LOGGER.debug(f"Creating select entity with unique_id: {select_unique_id}")
-    select = ActiveProviderSelect(hass)
+    # Create the select entity tied to first config entry
+    _LOGGER.info(f"Creating select entity linked to first config entry: {entry.entry_id}")
+    select = ActiveProviderSelect(hass, entry)
     async_add_entities([select])
 
 
 class ActiveProviderSelect(SelectEntity):
-    """Select entity for choosing the active energy provider."""
+    """Select entity for choosing the active energy provider.
+
+    This entity is tied to the first config entry to satisfy Home Assistant's
+    requirement that config-entry-based integrations have entities with config_entry_id.
+    """
 
     _attr_has_entity_name = False
     _attr_icon = "mdi:swap-horizontal"
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the select entity."""
         self._hass = hass
+        self._entry = entry
         self._attr_unique_id = "active_provider"  # Simple unique_id, platform already provides domain context
         self._attr_name = "Active Energy Provider"
         self._attr_options = []
         self._attr_current_option = None
+
+    @property
+    def config_entry_id(self) -> str:
+        """Return config entry ID (required for config-entry-based integrations)."""
+        return self._entry.entry_id
 
     async def async_added_to_hass(self) -> None:
         """Handle entity added to Home Assistant."""
