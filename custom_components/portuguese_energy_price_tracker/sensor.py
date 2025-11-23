@@ -811,7 +811,8 @@ class ActiveProviderBaseSensor(SensorEntity):
                     if select_state and select_state.state:
                         # Check if this sensor belongs to the active provider
                         active_provider = select_state.state
-                        if active_provider in entity_id or entity_id in self._get_active_provider_entity(self._sensor_type):
+                        active_entity = self._get_active_provider_entity(self._sensor_type)
+                        if active_provider in entity_id or (active_entity and entity_id == active_entity):
                             self.async_schedule_update_ha_state(force_refresh=False)
 
         # Subscribe to state changes for select entity and provider sensors
