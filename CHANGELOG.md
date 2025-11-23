@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **ActiveProvider routing sensors getting disconnected**: Fixed routing sensors losing connection to integration
+  - Routing sensors now properly linked to first config entry via config_entry_id
+  - Added device_info to group routing sensors under dedicated device
+  - All routing sensors now persist correctly across HA restarts and integration reloads
+  - Prevents "This entity is no longer being provided by the integration" errors
+
 ### Added
 
 - **Enable Debug Logging option**: New configuration option to enable detailed DEBUG-level logging for troubleshooting
