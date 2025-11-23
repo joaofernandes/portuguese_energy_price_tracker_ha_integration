@@ -49,6 +49,20 @@ SERVICE_REFRESH_SCHEMA = vol.Schema({
     vol.Optional("date"): cv.date,  # Optional date in YYYY-MM-DD format
 })
 
+# Global flag to track if routing sensors have been set up
+ROUTING_SENSORS_SETUP_KEY = f"{DOMAIN}_routing_sensors_setup"
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Energy Price Tracker integration at the integration level."""
+    # Initialize domain data storage
+    hass.data.setdefault(DOMAIN, {})
+
+    # Mark that we haven't set up routing sensors yet
+    hass.data[ROUTING_SENSORS_SETUP_KEY] = False
+
+    return True
+
 
 async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Migrate entities and clean up duplicates (one-time upgrade)."""

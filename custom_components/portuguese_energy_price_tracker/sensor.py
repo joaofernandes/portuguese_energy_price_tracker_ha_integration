@@ -23,6 +23,42 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
+async def async_setup_platform(
+    hass: HomeAssistant,
+    config: dict,
+    async_add_entities: AddEntitiesCallback,
+    discovery_info: dict | None = None,
+) -> None:
+    """Set up the routing sensors at integration level (not tied to any config entry)."""
+    from . import ROUTING_SENSORS_SETUP_KEY
+
+    # Only create routing sensors once for the entire integration
+    if hass.data.get(ROUTING_SENSORS_SETUP_KEY, False):
+        _LOGGER.debug("Routing sensors already set up, skipping")
+        return
+
+    _LOGGER.info("Setting up ActiveProvider routing sensors at integration level")
+
+    # Create routing sensors that are NOT tied to any config entry
+    routing_sensors = [
+        ActiveProviderCurrentSensor(hass),
+        ActiveProviderCurrentVATSensor(hass),
+        ActiveProviderTodayMaxSensor(hass),
+        ActiveProviderTodayMaxVATSensor(hass),
+        ActiveProviderTodayMinSensor(hass),
+        ActiveProviderTodayMinVATSensor(hass),
+        ActiveProviderTomorrowMaxSensor(hass),
+        ActiveProviderTomorrowMaxVATSensor(hass),
+        ActiveProviderTomorrowMinSensor(hass),
+        ActiveProviderTomorrowMinVATSensor(hass),
+        ActiveProviderAllPricesSensor(hass),
+    ]
+
+    async_add_entities(routing_sensors)
+    hass.data[ROUTING_SENSORS_SETUP_KEY] = True
+    _LOGGER.info(f"Created {len(routing_sensors)} routing sensors at integration level")
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -31,7 +67,7 @@ async def async_setup_entry(
     """Set up Energy Price Tracker sensor based on a config entry."""
     coordinator: EnergyPriceCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Provider-specific sensors
+    # Provider-specific sensors (tied to this config entry)
     sensors = [
         EnergyPriceCurrentSensor(coordinator, entry),
         EnergyPriceCurrentVATSensor(coordinator, entry),
@@ -48,29 +84,13 @@ async def async_setup_entry(
         EnergyPriceAllPricesSensor(coordinator, entry),
     ]
 
-    # Check if this is the first config entry to add generic routing sensors
-    # These sensors are associated with the first entry to ensure they have a valid config_entry_id
-    config_entries = hass.config_entries.async_entries(DOMAIN)
-    is_first_entry = len(config_entries) > 0 and config_entries[0].entry_id == entry.entry_id
-
-    if is_first_entry:
-        _LOGGER.debug(f"Adding generic routing sensors linked to first config entry: {entry.entry_id}")
-        # Add generic routing sensors - pass entry to link them to this config entry
-        sensors.extend([
-            ActiveProviderCurrentSensor(hass, entry),
-            ActiveProviderCurrentVATSensor(hass, entry),
-            ActiveProviderTodayMaxSensor(hass, entry),
-            ActiveProviderTodayMaxVATSensor(hass, entry),
-            ActiveProviderTodayMinSensor(hass, entry),
-            ActiveProviderTodayMinVATSensor(hass, entry),
-            ActiveProviderTomorrowMaxSensor(hass, entry),
-            ActiveProviderTomorrowMaxVATSensor(hass, entry),
-            ActiveProviderTomorrowMinSensor(hass, entry),
-            ActiveProviderTomorrowMinVATSensor(hass, entry),
-            ActiveProviderAllPricesSensor(hass, entry),
-        ])
-
     async_add_entities(sensors)
+
+    # Set up routing sensors at integration level if not already done
+    from . import ROUTING_SENSORS_SETUP_KEY
+    if not hass.data.get(ROUTING_SENSORS_SETUP_KEY, False):
+        _LOGGER.info("First config entry - setting up routing sensors at integration level")
+        await async_setup_platform(hass, {}, async_add_entities, None)
 
 
 class EnergyPriceBaseSensor(CoordinatorEntity, SensorEntity):
@@ -664,12 +684,15 @@ class EnergyPriceAllPricesSensor(EnergyPriceBaseSensor):
 
 
 class ActiveProviderBaseSensor(SensorEntity):
-    """Base class for active provider routing sensors."""
+    """Base class for active provider routing sensors.
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, sensor_type: str, name: str) -> None:
+    These sensors exist at the integration level and are NOT tied to any config entry.
+    They route data from the active provider selected by the user.
+    """
+
+    def __init__(self, hass: HomeAssistant, sensor_type: str, name: str) -> None:
         """Initialize the sensor."""
         self._hass = hass
-        self._entry = entry
         self._sensor_type = sensor_type
         self._attr_name = name
         self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
@@ -677,14 +700,8 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_should_poll = False
 
     @property
-    def config_entry_id(self) -> str:
-        """Return the config entry ID this entity belongs to."""
-        return self._entry.entry_id
-
-    @property
     def device_info(self) -> dict[str, Any]:
-        """Return device info to link sensor to the config entry's device."""
-        # Link to the first provider's device to maintain connection
+        """Return device info to group routing sensors together."""
         return {
             "identifiers": {(DOMAIN, f"{DOMAIN}_routing_sensors")},
             "name": "Active Energy Provider (Routing Sensors)",
@@ -827,9 +844,9 @@ class ActiveProviderBaseSensor(SensorEntity):
 class ActiveProviderCurrentSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's current price (no VAT)."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "current_price", "Active Provider Current Price")
+        super().__init__(hass, "current_price", "Active Provider Current Price")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -852,9 +869,9 @@ class ActiveProviderCurrentSensor(ActiveProviderBaseSensor):
 class ActiveProviderCurrentVATSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's current price with VAT."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "current_price_with_vat", "Active Provider Current Price with VAT")
+        super().__init__(hass, "current_price_with_vat", "Active Provider Current Price with VAT")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -877,9 +894,9 @@ class ActiveProviderCurrentVATSensor(ActiveProviderBaseSensor):
 class ActiveProviderTodayMaxSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's today max price."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "today_max_price", "Active Provider Today Max Price")
+        super().__init__(hass, "today_max_price", "Active Provider Today Max Price")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -902,9 +919,9 @@ class ActiveProviderTodayMaxSensor(ActiveProviderBaseSensor):
 class ActiveProviderTodayMaxVATSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's today max price with VAT."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "today_max_price_with_vat", "Active Provider Today Max Price with VAT")
+        super().__init__(hass, "today_max_price_with_vat", "Active Provider Today Max Price with VAT")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -927,9 +944,9 @@ class ActiveProviderTodayMaxVATSensor(ActiveProviderBaseSensor):
 class ActiveProviderTodayMinSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's today min price."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "today_min_price", "Active Provider Today Min Price")
+        super().__init__(hass, "today_min_price", "Active Provider Today Min Price")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -952,9 +969,9 @@ class ActiveProviderTodayMinSensor(ActiveProviderBaseSensor):
 class ActiveProviderTodayMinVATSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's today min price with VAT."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "today_min_price_with_vat", "Active Provider Today Min Price with VAT")
+        super().__init__(hass, "today_min_price_with_vat", "Active Provider Today Min Price with VAT")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -979,9 +996,9 @@ class ActiveProviderAllPricesSensor(ActiveProviderBaseSensor):
 
     _unrecorded_attributes = frozenset({"prices"})
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "all_prices", "Active Provider All Prices")
+        super().__init__(hass, "all_prices", "Active Provider All Prices")
         self._attr_icon = "mdi:chart-line"
 
     @property
@@ -1026,9 +1043,9 @@ class ActiveProviderAllPricesSensor(ActiveProviderBaseSensor):
 class ActiveProviderTomorrowMaxSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's tomorrow max price."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "tomorrow_max_price", "Active Provider Tomorrow Max Price")
+        super().__init__(hass, "tomorrow_max_price", "Active Provider Tomorrow Max Price")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -1051,9 +1068,9 @@ class ActiveProviderTomorrowMaxSensor(ActiveProviderBaseSensor):
 class ActiveProviderTomorrowMaxVATSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's tomorrow max price with VAT."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "tomorrow_max_price_with_vat", "Active Provider Tomorrow Max Price with VAT")
+        super().__init__(hass, "tomorrow_max_price_with_vat", "Active Provider Tomorrow Max Price with VAT")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -1076,9 +1093,9 @@ class ActiveProviderTomorrowMaxVATSensor(ActiveProviderBaseSensor):
 class ActiveProviderTomorrowMinSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's tomorrow min price."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "tomorrow_min_price", "Active Provider Tomorrow Min Price")
+        super().__init__(hass, "tomorrow_min_price", "Active Provider Tomorrow Min Price")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 
@@ -1101,9 +1118,9 @@ class ActiveProviderTomorrowMinSensor(ActiveProviderBaseSensor):
 class ActiveProviderTomorrowMinVATSensor(ActiveProviderBaseSensor):
     """Generic sensor for active provider's tomorrow min price with VAT."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         """Initialize the sensor."""
-        super().__init__(hass, entry, "tomorrow_min_price_with_vat", "Active Provider Tomorrow Min Price with VAT")
+        super().__init__(hass, "tomorrow_min_price_with_vat", "Active Provider Tomorrow Min Price with VAT")
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
 

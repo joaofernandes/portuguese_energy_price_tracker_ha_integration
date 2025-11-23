@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: Routing sensors architectural redesign**: ActiveProvider routing sensors now exist at integration level
+  - Routing sensors are NO LONGER tied to any specific config entry
+  - Persist independently of provider configuration
+  - Always available regardless of number of providers configured
+  - Will be recreated on next Home Assistant restart or integration reload
+  - Migration v3 removes old routing sensors for clean recreation with new architecture
+
 ## [2.2.7] - 2025-11-23
 
 ### Added
