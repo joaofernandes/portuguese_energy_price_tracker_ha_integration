@@ -7,13 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **ActiveProvider routing sensors getting disconnected**: Fixed routing sensors losing connection to integration
-  - Routing sensors now properly linked to first config entry via config_entry_id
-  - Added device_info to group routing sensors under dedicated device
-  - All routing sensors now persist correctly across HA restarts and integration reloads
-  - Prevents "This entity is no longer being provided by the integration" errors
+## [2.2.7] - 2025-11-23
 
 ### Added
 
@@ -30,6 +24,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures tomorrow's data is retrieved as soon as it's published (typically around 13:00 CET)
   - Returns to normal caching behavior before 1 PM to reduce GitHub API calls
   - Added INFO-level logging to indicate when cache bypass is active
+- **Data Flow Architecture Documentation**: Comprehensive mermaid diagram showing complete data flow
+  - Visual representation of user interaction, coordinator, fetching, and sensor layers
+  - Documents caching strategy and smart cache bypass logic
+  - Explains sensor update propagation and error handling
+
+### Fixed
+
+- **ActiveProvider routing sensors getting disconnected**: Fixed routing sensors losing connection to integration
+  - Routing sensors now properly linked to first config entry via config_entry_id
+  - Added device_info to group routing sensors under dedicated device
+  - All routing sensors now persist correctly across HA restarts and integration reloads
+  - Prevents "This entity is no longer being provided by the integration" errors
+- **Warning noise reduced**: Changed missing tomorrow data warning from WARNING to DEBUG level
+  - No longer shows alarming warnings for normal scenario where data hasn't been published yet
+  - Sensors use appropriate default values (None/0/empty arrays) when data unavailable
+
+## [2.2.6] - 2025-11-22
 
 ### Fixed
 
