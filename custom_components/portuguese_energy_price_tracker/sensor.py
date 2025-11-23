@@ -698,6 +698,7 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
         self._attr_has_entity_name = False
         self._attr_should_poll = False
+        self._attr_force_update = True  # Force HA to always update this entity
 
     @property
     def device_info(self) -> dict[str, Any]:
