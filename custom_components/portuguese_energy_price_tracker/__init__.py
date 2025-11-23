@@ -184,6 +184,61 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
         )
         _LOGGER.info("Migration v2 complete")
 
+    # Version 3: Clean up ALL ActiveProvider routing sensors to force recreation with config_entry_id (v2.2.7+)
+    # Previous migrations didn't add config_entry_id property, so entities were still orphaned
+    if migration_version < 3:
+        _LOGGER.info("Running migration v3: Cleaning up ALL ActiveProvider routing sensors for recreation")
+
+        # List of ActiveProvider routing sensor types
+        routing_sensor_types = [
+            "current_price",
+            "current_price_with_vat",
+            "today_max_price",
+            "today_max_price_with_vat",
+            "today_min_price",
+            "today_min_price_with_vat",
+            "tomorrow_max_price",
+            "tomorrow_max_price_with_vat",
+            "tomorrow_min_price",
+            "tomorrow_min_price_with_vat",
+            "all_prices",
+        ]
+
+        all_routing_sensors = []
+
+        # Find ALL ActiveProvider routing sensors regardless of config_entry_id
+        for entity in entity_registry.entities.values():
+            if entity.platform != DOMAIN or entity.domain != "sensor":
+                continue
+
+            # Check if this is an ActiveProvider routing sensor by unique_id pattern
+            for sensor_type in routing_sensor_types:
+                expected_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
+                if entity.unique_id == expected_unique_id:
+                    all_routing_sensors.append(entity.entity_id)
+                    _LOGGER.info(
+                        f"Found ActiveProvider sensor to clean: {entity.entity_id} "
+                        f"(unique_id: {entity.unique_id}, config_entry_id: {entity.config_entry_id})"
+                    )
+                    break
+
+        # Remove all routing sensors - they will be recreated with proper config_entry_id
+        if all_routing_sensors:
+            _LOGGER.info(f"Removing {len(all_routing_sensors)} ActiveProvider routing sensor(s) for clean recreation")
+            for entity_id in all_routing_sensors:
+                _LOGGER.info(f"Removing sensor: {entity_id}")
+                entity_registry.async_remove(entity_id)
+            _LOGGER.info("ActiveProvider routing sensors removed. They will be recreated with proper config_entry_id on next platform setup.")
+        else:
+            _LOGGER.debug("No ActiveProvider routing sensors found to clean")
+
+        # Mark migration v3 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 3}
+        )
+        _LOGGER.info("Migration v3 complete")
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Price Tracker from a config entry."""

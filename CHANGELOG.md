@@ -32,7 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **ActiveProvider routing sensors getting disconnected**: Fixed routing sensors losing connection to integration
-  - Routing sensors now properly linked to first config entry via config_entry_id
+  - Added missing `config_entry_id` property to `ActiveProviderBaseSensor` class
+  - Migration v3 automatically removes old orphaned routing sensors for clean recreation
+  - Routing sensors now properly linked to first config entry via config_entry_id property
   - Added device_info to group routing sensors under dedicated device
   - All routing sensors now persist correctly across HA restarts and integration reloads
   - Prevents "This entity is no longer being provided by the integration" errors

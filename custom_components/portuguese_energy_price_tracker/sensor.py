@@ -677,6 +677,11 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_should_poll = False
 
     @property
+    def config_entry_id(self) -> str:
+        """Return the config entry ID this entity belongs to."""
+        return self._entry.entry_id
+
+    @property
     def device_info(self) -> dict[str, Any]:
         """Return device info to link sensor to the config entry's device."""
         # Link to the first provider's device to maintain connection
