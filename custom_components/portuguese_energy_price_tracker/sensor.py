@@ -698,7 +698,6 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
         self._attr_has_entity_name = False
         self._attr_should_poll = False
-        self._attr_force_update = True  # Force HA to always update this entity
 
     @property
     def device_info(self) -> dict[str, Any]:
@@ -789,27 +788,43 @@ class ActiveProviderBaseSensor(SensorEntity):
         @callback
         def _update_callback(event):
             """Update when provider changes or provider sensor updates."""
-            # Force refresh when select entity changes to ensure charts update
-            # This is critical for ApexCharts and other UI components that watch attributes
             entity_id = event.data.get("entity_id")
 
+            # CRITICAL: Only listen to select entity and provider sensors - ignore routing sensor updates
+            # This prevents infinite loop where routing sensor update triggers callback which schedules update
+            if not entity_id:
+                return
+
+            # Ignore updates from routing sensors themselves (prevent infinite loop)
+            if entity_id.startswith("sensor.active_provider_"):
+                return
+
+            # Only update when select entity changes
             if entity_id == "select.active_energy_provider":
                 old_state = event.data.get("old_state")
                 new_state = event.data.get("new_state")
 
-                # Only force refresh if the state actually changed
+                # Only update if the state actually changed
                 if old_state and new_state and old_state.state != new_state.state:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         f"[ROUTING] Active provider changed from '{old_state.state}' to '{new_state.state}' - "
-                        f"forcing state refresh for {self._attr_name}"
+                        f"scheduling update for {self._attr_name}"
                     )
                     self.async_schedule_update_ha_state(force_refresh=True)
-                    return
 
-            # For all other state changes, just schedule normal update
-            self.async_schedule_update_ha_state(force_refresh=False)
+            # Also update when the active provider's sensors update
+            elif entity_id.startswith(f"sensor.") and entity_id.endswith(f"_{self._sensor_type}"):
+                # Get active provider
+                select_entity_id = self._find_select_entity_id()
+                if select_entity_id:
+                    select_state = self._hass.states.get(select_entity_id)
+                    if select_state and select_state.state:
+                        # Check if this sensor belongs to the active provider
+                        active_provider = select_state.state
+                        if active_provider in entity_id or entity_id in self._get_active_provider_entity(self._sensor_type):
+                            self.async_schedule_update_ha_state(force_refresh=False)
 
-        # Subscribe to all state changes (we'll filter for our select entity dynamically)
+        # Subscribe to state changes for select entity and provider sensors
         self.async_on_remove(
             self._hass.bus.async_listen("state_changed", _update_callback)
         )
