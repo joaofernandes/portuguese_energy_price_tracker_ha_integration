@@ -239,6 +239,60 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
         )
         _LOGGER.info("Migration v3 complete")
 
+    # Version 4: Fix select entity config_entry_id to match first config entry (v2.2.13+)
+    # The select entity should be tied to the same entry as routing sensors (the first one)
+    if migration_version < 4:
+        _LOGGER.info("Running migration v4: Fixing select entity config_entry_id")
+
+        # Find all config entries for this integration
+        all_entries = [e for e in hass.config_entries.async_entries(DOMAIN)]
+        if not all_entries:
+            _LOGGER.warning("No config entries found for migration v4")
+            # Mark migration as complete anyway to prevent re-running
+            hass.config_entries.async_update_entry(
+                entry,
+                data={**entry.data, "migration_version": 4}
+            )
+            return
+
+        # Sort entries by entry_id to find the first one (same logic as sensor.py)
+        all_entries_sorted = sorted(all_entries, key=lambda e: e.entry_id)
+        first_entry_id = all_entries_sorted[0].entry_id
+
+        _LOGGER.info(f"First config entry ID: {first_entry_id}")
+
+        # Find the select entity with unique_id "active_provider"
+        select_entity = None
+        for entity in entity_registry.entities.values():
+            if (entity.platform == DOMAIN and
+                entity.domain == "select" and
+                entity.unique_id == "active_provider"):
+                select_entity = entity
+                break
+
+        if select_entity:
+            current_entry_id = select_entity.config_entry_id
+            if current_entry_id != first_entry_id:
+                _LOGGER.info(
+                    f"Updating select entity config_entry_id from {current_entry_id} to {first_entry_id}"
+                )
+                entity_registry.async_update_entity(
+                    select_entity.entity_id,
+                    config_entry_id=first_entry_id
+                )
+                _LOGGER.info("Select entity config_entry_id updated successfully")
+            else:
+                _LOGGER.debug(f"Select entity already has correct config_entry_id: {first_entry_id}")
+        else:
+            _LOGGER.warning("Select entity 'active_provider' not found in entity registry")
+
+        # Mark migration v4 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 4}
+        )
+        _LOGGER.info("Migration v4 complete")
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Energy Price Tracker from a config entry."""
