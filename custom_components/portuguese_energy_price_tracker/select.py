@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
 
@@ -39,7 +40,7 @@ async def async_setup_entry(
     async_add_entities([select])
 
 
-class ActiveProviderSelect(SelectEntity):
+class ActiveProviderSelect(SelectEntity, RestoreEntity):
     """Select entity for choosing the active energy provider.
 
     This entity is tied to the first config entry to satisfy Home Assistant's
@@ -66,6 +67,13 @@ class ActiveProviderSelect(SelectEntity):
     async def async_added_to_hass(self) -> None:
         """Handle entity added to Home Assistant."""
         await super().async_added_to_hass()
+
+        # Restore previous state if available
+        if (last_state := await self.async_get_last_state()) is not None:
+            if last_state.state and last_state.state != "unknown":
+                self._attr_current_option = last_state.state
+                _LOGGER.info(f"Restored previous provider selection: {last_state.state}")
+
         # Update options when entity is added
         await self._update_options()
 
@@ -105,8 +113,15 @@ class ActiveProviderSelect(SelectEntity):
             )
         else:
             self._attr_options = sorted(options)
-            # Set current option to first if not set or if previous selection no longer exists
-            if not self._attr_current_option or self._attr_current_option not in self._attr_options:
+            # Set current option to first only if not set AND no previous state exists
+            if not self._attr_current_option:
+                self._attr_current_option = self._attr_options[0]
+            elif self._attr_current_option not in self._attr_options:
+                # Previous selection no longer valid, default to first
+                _LOGGER.warning(
+                    f"Previously selected provider '{self._attr_current_option}' "
+                    f"no longer available, defaulting to first option"
+                )
                 self._attr_current_option = self._attr_options[0]
 
         self.async_write_ha_state()
