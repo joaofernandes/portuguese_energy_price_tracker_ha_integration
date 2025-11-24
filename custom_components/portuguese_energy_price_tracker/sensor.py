@@ -167,7 +167,7 @@ class EnergyPriceCurrentVATSensor(EnergyPriceBaseSensor):
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "current_price_vat")
+        super().__init__(coordinator, entry, "current_price_with_vat")
         self._attr_name = "Current Price with VAT"
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
@@ -237,7 +237,7 @@ class EnergyPriceTodayMaxVATSensor(EnergyPriceBaseSensor):
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "today_max_price_vat")
+        super().__init__(coordinator, entry, "today_max_price_with_vat")
         self._attr_name = "Today's Maximum Price with VAT"
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
@@ -300,7 +300,7 @@ class EnergyPriceTodayMinVATSensor(EnergyPriceBaseSensor):
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "today_min_price_vat")
+        super().__init__(coordinator, entry, "today_min_price_with_vat")
         self._attr_name = "Today's Minimum Price with VAT"
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
@@ -363,7 +363,7 @@ class EnergyPriceTomorrowMaxVATSensor(EnergyPriceBaseSensor):
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "tomorrow_max_price_vat")
+        super().__init__(coordinator, entry, "tomorrow_max_price_with_vat")
         self._attr_name = "Tomorrow Max Price VAT"
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
@@ -426,7 +426,7 @@ class EnergyPriceTomorrowMinVATSensor(EnergyPriceBaseSensor):
 
     def __init__(self, coordinator: EnergyPriceCoordinator, entry: ConfigEntry) -> None:
         """Initialize the sensor."""
-        super().__init__(coordinator, entry, "tomorrow_min_price_vat")
+        super().__init__(coordinator, entry, "tomorrow_min_price_with_vat")
         self._attr_name = "Tomorrow Min Price VAT"
         self._attr_native_unit_of_measurement = f"{CURRENCY_EURO}/kWh"
         self._attr_device_class = SensorDeviceClass.MONETARY
@@ -757,15 +757,17 @@ class ActiveProviderBaseSensor(SensorEntity):
                     entity_reg = er.async_get(self._hass)
 
                     # Search for entity with matching unique_id pattern
+                    # We match against the coordinator's config_entry_id (entry_id from loop)
+                    # to ensure we get the sensor from the correct provider config entry
                     for entity in entity_reg.entities.values():
                         if (entity.platform == DOMAIN and
                             entity.unique_id and
                             entity.unique_id.endswith(f"_{suffix}") and
-                            entity.config_entry_id == entry_id):
-                            _LOGGER.debug(f"Matched! Found entity_id: {entity.entity_id}")
+                            entity.config_entry_id == entry_id):  # Use coordinator's entry_id
+                            _LOGGER.debug(f"Matched! Found entity_id: {entity.entity_id} for coordinator display_name: {coordinator.display_name} in config_entry {entry_id}")
                             return entity.entity_id
 
-                    _LOGGER.warning(f"Found coordinator but no matching entity for suffix '{suffix}'")
+                    _LOGGER.warning(f"Found coordinator '{coordinator.display_name}' (entry {entry_id}) but no matching entity for suffix '{suffix}'")
                     return None
 
         _LOGGER.warning(f"No coordinator found matching display_name: {selected_display_name}")

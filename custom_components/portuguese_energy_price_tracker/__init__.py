@@ -59,6 +59,15 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
     # Check if migration has already run
     migration_version = entry.data.get("migration_version", 0)
 
+    # DEBUG: Log migration entry details
+    _LOGGER.info(f"[MIGRATION DEBUG] Starting migrations for entry_id: {entry.entry_id}")
+    _LOGGER.info(f"[MIGRATION DEBUG] Current migration_version: {migration_version}")
+    _LOGGER.info(f"[MIGRATION DEBUG] Entry data: {entry.data}")
+    provider = entry.data.get("provider", "")
+    tariff = entry.data.get("tariff", "")
+    _LOGGER.info(f"[MIGRATION DEBUG] Provider: '{provider}', Tariff: '{tariff}'")
+    _LOGGER.info(f"[MIGRATION DEBUG] Will check for migrations v1-v6")
+
     # Version 1: Clean up duplicate select entities (v2.2.0+)
     if migration_version < 1:
         _LOGGER.info("Running migration v1: Cleaning up duplicate select entities")
@@ -292,6 +301,94 @@ async def _async_migrate_entities(hass: HomeAssistant, entry: ConfigEntry) -> No
             data={**entry.data, "migration_version": 4}
         )
         _LOGGER.info("Migration v4 complete")
+
+    # Version 5: Delete and recreate select entity with proper config_entry_id property (v2.2.14+)
+    # Migration v4 updated the registry but the change didn't persist because the class
+    # didn't have a config_entry_id property. Now we delete and recreate it properly.
+    if migration_version < 5:
+        _LOGGER.info("Running migration v5: Deleting old select entity for recreation")
+
+        # Find the select entity
+        select_entity = None
+        for entity in entity_registry.entities.values():
+            if (entity.platform == DOMAIN and
+                entity.unique_id == "active_provider"):
+                select_entity = entity
+                break
+
+        if select_entity:
+            _LOGGER.info(f"Deleting select entity {select_entity.entity_id} to allow recreation with proper architecture")
+            entity_registry.async_remove(select_entity.entity_id)
+            _LOGGER.info("Select entity deleted - will be recreated by select platform with correct config_entry_id")
+        else:
+            _LOGGER.debug("Select entity not found in registry - will be created fresh by select platform")
+
+        # Mark migration v5 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 5}
+        )
+        _LOGGER.info("Migration v5 complete")
+
+    # Version 6: Delete provider sensors with old _vat suffix (v2.2.16+)
+    # Provider sensors were using _vat suffix but should use _with_vat for consistency with routing sensors
+    # This migration deletes old provider VAT sensors so they can be recreated with correct suffix.
+    _LOGGER.info(f"[MIGRATION DEBUG] Checking migration v6 condition: migration_version ({migration_version}) < 6 = {migration_version < 6}")
+
+    if migration_version < 6:
+        _LOGGER.info("Running migration v6: Deleting provider sensors with old _vat suffix")
+
+        # List of provider VAT sensor suffixes that need to be fixed
+        old_suffixes = [
+            "current_price_vat",
+            "today_max_price_vat",
+            "today_min_price_vat",
+            "tomorrow_max_price_vat",
+            "tomorrow_min_price_vat",
+        ]
+
+        deleted_count = 0
+        provider = entry.data.get("provider", "")
+        tariff = entry.data.get("tariff", "")
+
+        _LOGGER.info(f"[MIGRATION DEBUG] Migration v6 - provider: '{provider}', tariff: '{tariff}'")
+        _LOGGER.info(f"[MIGRATION DEBUG] Migration v6 - checking condition: provider and tariff = {bool(provider and tariff)}")
+
+        # Only process provider entries (not the first entry which has routing sensors)
+        if provider and tariff:
+            _LOGGER.info(f"[MIGRATION DEBUG] Migration v6 - entering provider sensor deletion loop")
+            for old_suffix in old_suffixes:
+                # Build the old unique_id pattern for this provider's sensors
+                old_unique_id = f"{DOMAIN}_{provider}_{tariff}_{old_suffix}".lower().replace(" ", "_")
+                _LOGGER.info(f"[MIGRATION DEBUG] Migration v6 - searching for entity with unique_id: {old_unique_id}")
+
+                found_entity = False
+                for entity in entity_registry.entities.values():
+                    if (entity.platform == DOMAIN and
+                        entity.domain == "sensor" and
+                        entity.unique_id == old_unique_id):
+                        _LOGGER.info(f"Deleting provider sensor {entity.entity_id} with old unique_id: {old_unique_id}")
+                        entity_registry.async_remove(entity.entity_id)
+                        deleted_count += 1
+                        found_entity = True
+                        break
+
+                if not found_entity:
+                    _LOGGER.info(f"[MIGRATION DEBUG] Migration v6 - no entity found with unique_id: {old_unique_id}")
+
+            if deleted_count > 0:
+                _LOGGER.info(f"Deleted {deleted_count} provider sensor(s) with old _vat suffix - will be recreated with _with_vat suffix")
+            else:
+                _LOGGER.debug("No provider sensors with old _vat suffix found")
+
+        # Mark migration v6 as complete
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, "migration_version": 6}
+        )
+        _LOGGER.info("Migration v6 complete")
+    else:
+        _LOGGER.info(f"[MIGRATION DEBUG] Skipping migration v6 (migration_version={migration_version})")
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

@@ -31,16 +31,9 @@ async def async_setup_entry(
         _LOGGER.debug(f"Skipping select entity creation for entry {entry.entry_id} (not first entry)")
         return
 
-    # Check if select entity already exists in the registry
-    entity_reg = er.async_get(hass)
-    select_unique_id = "active_provider"
-    existing_entity_id = entity_reg.async_get_entity_id("select", DOMAIN, select_unique_id)
-
-    if existing_entity_id:
-        _LOGGER.debug(f"Select entity already exists in registry ({existing_entity_id}), skipping creation")
-        return
-
     # Create the select entity tied to first config entry
+    # If an orphaned entity exists in registry, Home Assistant will handle the cleanup
+    # and properly bind this new instance to the config entry
     _LOGGER.info(f"Creating select entity linked to first config entry: {entry.entry_id}")
     select = ActiveProviderSelect(hass, entry)
     async_add_entities([select])
