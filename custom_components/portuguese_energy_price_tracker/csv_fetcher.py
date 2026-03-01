@@ -177,7 +177,7 @@ class CSVDataFetcher:
         date_str = date.strftime("%Y-%m-%d")
         file_path = self.data_dir / f"prices_{date_str}.csv"
 
-        await write_utf8_file(str(file_path), content)
+        write_utf8_file(str(file_path), content)
         _LOGGER.debug(f"Saved CSV to local file: {file_path}")
 
     async def load_from_local(self, date: datetime) -> str | None:
@@ -326,12 +326,12 @@ class CSVDataFetcher:
             List of price dictionaries with datetime, interval, price, price_w_vat
         """
         if target_date is None:
-            target_date = datetime.now()
+            target_date = dt_util.now()
 
         date_key = target_date.strftime("%Y-%m-%d")
-        is_today = target_date.date() == datetime.now().date()
-        is_tomorrow = target_date.date() == (datetime.now() + timedelta(days=1)).date()
-        is_past = target_date.date() < datetime.now().date()
+        is_today = target_date.date() == dt_util.now().date()
+        is_tomorrow = target_date.date() == (dt_util.now() + timedelta(days=1)).date()
+        is_past = target_date.date() < dt_util.now().date()
 
         # Check memory cache first (unless bypassing)
         cached_data = self.cache.get(date_key, bypass_cache=bypass_cache)

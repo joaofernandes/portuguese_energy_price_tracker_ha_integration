@@ -547,8 +547,8 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             if not hasattr(self.csv_fetcher, 'get_prices'):
                 raise ValueError(f"CSV fetcher has no get_prices method. Type: {type(self.csv_fetcher)}")
 
-            today_date = datetime.now().date()
-            tomorrow_date = (datetime.now() + timedelta(days=1)).date()
+            today_date = dt_util.now().date()
+            tomorrow_date = (dt_util.now() + timedelta(days=1)).date()
 
             _LOGGER.info(
                 f"[UPDATE] Starting data fetch for {self.display_name} - "
@@ -568,7 +568,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             # Fetch tomorrow's prices with smart cache bypass after 1 PM
             # After 1 PM, if tomorrow's data isn't available, we bypass cache
             # and try to fetch fresh data from GitHub until it's available
-            now = datetime.now()
+            now = dt_util.now()
             tomorrow = now + timedelta(days=1)
 
             # Determine if we should bypass cache for tomorrow's data
@@ -632,7 +632,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 )
 
                 # Fetch tomorrow's prices
-                tomorrow = datetime.now() + timedelta(days=1)
+                tomorrow = dt_util.now() + timedelta(days=1)
                 tomorrow_prices = await self.csv_fetcher.get_prices(
                     provider=self.provider,
                     tariff=self.tariff,

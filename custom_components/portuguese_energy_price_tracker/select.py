@@ -88,7 +88,6 @@ class ActiveProviderSelect(SelectEntity, RestoreEntity):
             self._hass.bus.async_listen("config_entry_discovered", _entry_changed)
         )
 
-    @callback
     async def _update_options(self) -> None:
         """Update available provider options from all configured entries."""
         options = []
