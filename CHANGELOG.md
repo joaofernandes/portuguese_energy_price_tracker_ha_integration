@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.18] - 2026-03-01
+
+### Fixed
+
+- **Routing sensors VAT suffix mismatch**: All VAT routing sensors were always returning None/unavailable because they looked for entities with `_vat` suffix instead of the correct `_with_vat` suffix
+- **Options flow crash (500 error)**: Modernized OptionsFlowHandler to not pass config_entry in __init__ (deprecated in recent HA versions), fixing the settings button error
+- **@callback on async method**: Removed incorrect `@callback` decorator from async `_update_options` method in select.py
+- **await on sync function**: Removed invalid `await` from synchronous `write_utf8_file()` call in csv_fetcher.py
+- **Timezone-naive datetime usage**: Replaced `datetime.now()` with `dt_util.now()` in coordinator and csv_fetcher for correct timezone handling
+
 ### Changed
 
 - **BREAKING: Routing sensors architectural redesign**: ActiveProvider routing sensors now exist at integration level

@@ -887,7 +887,7 @@ class ActiveProviderCurrentVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return the current price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("current_price_vat")
+        entity_id = self._get_active_provider_entity("current_price_with_vat")
         if not entity_id:
             return None
 
@@ -937,7 +937,7 @@ class ActiveProviderTodayMaxVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's max price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("today_max_price_vat")
+        entity_id = self._get_active_provider_entity("today_max_price_with_vat")
         if not entity_id:
             return None
 
@@ -987,7 +987,7 @@ class ActiveProviderTodayMinVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return today's min price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("today_min_price_vat")
+        entity_id = self._get_active_provider_entity("today_min_price_with_vat")
         if not entity_id:
             return None
 
@@ -1086,7 +1086,7 @@ class ActiveProviderTomorrowMaxVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return tomorrow's max price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("tomorrow_max_price_vat")
+        entity_id = self._get_active_provider_entity("tomorrow_max_price_with_vat")
         if not entity_id:
             return None
 
@@ -1136,7 +1136,7 @@ class ActiveProviderTomorrowMinVATSensor(ActiveProviderBaseSensor):
     @property
     def native_value(self) -> float | None:
         """Return tomorrow's min price with VAT from active provider."""
-        entity_id = self._get_active_provider_entity("tomorrow_min_price_vat")
+        entity_id = self._get_active_provider_entity("tomorrow_min_price_with_vat")
         if not entity_id:
             return None
 
