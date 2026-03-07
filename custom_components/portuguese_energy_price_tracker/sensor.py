@@ -682,7 +682,6 @@ class ActiveProviderBaseSensor(SensorEntity):
         self._attr_name = name
         self._attr_unique_id = f"{DOMAIN}_active_provider_{sensor_type}"
         self._attr_has_entity_name = False
-        self._attr_should_poll = False
 
     @property
     def config_entry_id(self) -> str:
@@ -729,61 +728,46 @@ class ActiveProviderBaseSensor(SensorEntity):
         active_provider = self._hass.states.get(select_entity_id)
 
         if not active_provider or not active_provider.state or active_provider.state in ["unknown", "unavailable"]:
-            _LOGGER.debug(f"Active provider select entity not ready (state={active_provider.state if active_provider else 'None'})")
             return None
 
         selected_display_name = active_provider.state
 
-        # Handle empty configuration case
         if selected_display_name == "No providers configured":
-            _LOGGER.debug(f"No providers configured")
             return None
 
         # Find the coordinator matching this display name
         if DOMAIN not in self._hass.data:
-            _LOGGER.debug(f"Domain {DOMAIN} not in hass.data")
             return None
 
-        _LOGGER.debug(f"Looking for coordinator with display_name: {selected_display_name}")
         for entry_id, coordinator in self._hass.data[DOMAIN].items():
-            if hasattr(coordinator, "display_name"):
-                _LOGGER.debug(f"  Found coordinator with display_name: {coordinator.display_name}")
-                if coordinator.display_name == selected_display_name:
-                    # Found the matching coordinator
-                    # Instead of building entity_id, look it up in entity registry
-                    # The unique_id format is: f"{DOMAIN}_{slug}_{suffix}"
-                    # where slug comes from provider/tariff combination
+            if hasattr(coordinator, "display_name") and coordinator.display_name == selected_display_name:
+                entity_reg = er.async_get(self._hass)
 
-                    entity_reg = er.async_get(self._hass)
+                for entity in entity_reg.entities.values():
+                    if (entity.platform == DOMAIN and
+                        entity.unique_id and
+                        entity.unique_id.endswith(f"_{suffix}") and
+                        entity.config_entry_id == entry_id):
+                        # Cache this entity_id for the callback
+                        if hasattr(self, '_cached_provider_entity_id'):
+                            self._cached_provider_entity_id = entity.entity_id
+                        return entity.entity_id
 
-                    # Search for entity with matching unique_id pattern
-                    # We match against the coordinator's config_entry_id (entry_id from loop)
-                    # to ensure we get the sensor from the correct provider config entry
-                    for entity in entity_reg.entities.values():
-                        if (entity.platform == DOMAIN and
-                            entity.unique_id and
-                            entity.unique_id.endswith(f"_{suffix}") and
-                            entity.config_entry_id == entry_id):  # Use coordinator's entry_id
-                            _LOGGER.debug(f"Matched! Found entity_id: {entity.entity_id} for coordinator display_name: {coordinator.display_name} in config_entry {entry_id}")
-                            return entity.entity_id
+                return None
 
-                    _LOGGER.warning(f"Found coordinator '{coordinator.display_name}' (entry {entry_id}) but no matching entity for suffix '{suffix}'")
-                    return None
-
-        _LOGGER.warning(f"No coordinator found matching display_name: {selected_display_name}")
         return None
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to provider sensor and select changes."""
         await super().async_added_to_hass()
 
+        # Cache the entity_id of the provider sensor we route to
+        self._cached_provider_entity_id: str | None = None
+
         @callback
         def _update_callback(event):
             """Update when provider changes or provider sensor updates."""
             entity_id = event.data.get("entity_id")
-
-            # CRITICAL: Only listen to select entity and provider sensors - ignore routing sensor updates
-            # This prevents infinite loop where routing sensor update triggers callback which schedules update
             if not entity_id:
                 return
 
@@ -791,46 +775,25 @@ class ActiveProviderBaseSensor(SensorEntity):
             if entity_id.startswith("sensor.active_provider_"):
                 return
 
-            # Only update when select entity changes
+            # Update when select entity changes
             if entity_id == "select.active_energy_provider":
                 old_state = event.data.get("old_state")
                 new_state = event.data.get("new_state")
-
-                # Only update if the state actually changed
                 if old_state and new_state and old_state.state != new_state.state:
-                    _LOGGER.debug(
-                        f"[ROUTING] Active provider changed from '{old_state.state}' to '{new_state.state}' - "
-                        f"scheduling update for {self._attr_name}"
-                    )
+                    # Invalidate cache when provider changes
+                    self._cached_provider_entity_id = None
                     self.async_schedule_update_ha_state(force_refresh=True)
 
-            # Also update when the active provider's sensors update
-            elif entity_id.startswith(f"sensor.") and entity_id.endswith(f"_{self._sensor_type}"):
-                # Get active provider
-                select_entity_id = self._find_select_entity_id()
-                if select_entity_id:
-                    select_state = self._hass.states.get(select_entity_id)
-                    if select_state and select_state.state:
-                        # Check if this sensor belongs to the active provider
-                        active_provider = select_state.state
-                        active_entity = self._get_active_provider_entity(self._sensor_type)
-                        if active_provider in entity_id or (active_entity and entity_id == active_entity):
-                            self.async_schedule_update_ha_state(force_refresh=False)
+            # Update when the cached provider sensor updates
+            elif self._cached_provider_entity_id and entity_id == self._cached_provider_entity_id:
+                self.async_schedule_update_ha_state(force_refresh=False)
 
-        # Subscribe to state changes for select entity and provider sensors
         self.async_on_remove(
             self._hass.bus.async_listen("state_changed", _update_callback)
         )
 
-        # Trigger initial state update
+        # Trigger initial state update after a short delay to let provider sensors register
         self.async_schedule_update_ha_state(force_refresh=True)
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        entity_id = self._get_active_provider_entity("current_price")
-        # Sensor is available only if we have a valid provider entity
-        return entity_id is not None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
