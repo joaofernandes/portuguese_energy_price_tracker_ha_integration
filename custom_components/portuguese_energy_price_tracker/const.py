@@ -116,6 +116,12 @@ PROVIDERS: Final = {
             "TRIHORARIO_SEMANAL_HV",
         ],
     },
+    "Plenitude - Tendência": {
+        "name": "Plenitude - Tendência",
+        "tariffs": [
+            "SIMPLE",
+        ],
+    },
     "Repsol Leve Sem Mais": {
         "name": "Repsol Leve Sem Mais",
         "tariffs": [
