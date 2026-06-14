@@ -2,7 +2,7 @@
 
 refresh_data:
   name: Refresh Energy Price Data
-  description: Manually refresh energy price data from GitHub CSV. Can optionally specify a date to fetch historical data.
+  description: Manually refresh energy price data from the upstream CSV endpoint. Can optionally specify a date to fetch historical data.
   fields:
     date:
       name: Date

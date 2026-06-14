@@ -110,9 +110,9 @@ flowchart TD
 - **_process_prices**: Calculates current price, today's min/max, tomorrow's min/max
 
 ### Data Fetching Layer
-- **CSVDataFetcher**: Handles fetching and caching CSV data from GitHub
+- **CSVDataFetcher**: Handles fetching and caching CSV data from the upstream CSV endpoint
 - **Cache Check**: Verifies if cached data exists and is valid (< 1 hour old)
-- **GitHub CSV Repository**: Primary data source for current prices
+- **Upstream CSV endpoint**: Primary data source for current prices
 - **Git History**: Fallback for historical data when CSV file doesn't exist yet
 - **CSV Cache File**: Disk cache stored in `custom_components/portuguese_energy_price_tracker/data/`
 
@@ -133,7 +133,7 @@ flowchart TD
 ### Smart Cache Bypass (After 1 PM)
 1. Coordinator detects time >= 13:00
 2. Fetches today's data with cache (if valid)
-3. **Bypasses cache** for tomorrow's data, always tries GitHub
+3. **Bypasses cache** for tomorrow's data, always tries the upstream CSV endpoint
 4. Continues retrying fresh fetch until tomorrow's data is available
 5. Once available, data is cached and normal behavior resumes
 
