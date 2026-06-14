@@ -18,7 +18,7 @@ DEFAULT_VAT: Final = 23
 DEFAULT_INCLUDE_VAT: Final = True
 DEFAULT_ENABLE_DEBUG: Final = False
 
-# Supported providers and their tariffs (from GitHub CSV)
+# Supported providers and their tariffs (from the CSV source)
 PROVIDERS: Final = {
     "Alfa Power Index BTN": {
         "name": "Alfa Power Index BTN",

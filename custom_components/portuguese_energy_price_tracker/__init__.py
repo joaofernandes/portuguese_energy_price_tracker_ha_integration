@@ -514,7 +514,7 @@ async def async_remove_entry(_hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 
 class EnergyPriceCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching energy price data from GitHub CSV."""
+    """Class to manage fetching energy price data from the CSV source."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the coordinator."""
@@ -538,7 +538,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self):
-        """Fetch data from GitHub CSV (both today and tomorrow)."""
+        """Fetch data from the CSV source (both today and tomorrow)."""
         try:
             # Validate csv_fetcher is initialized
             if self.csv_fetcher is None:

@@ -10,7 +10,7 @@ A Home Assistant custom integration that tracks real-time electricity prices for
 
 ## Features
 
-- **Real-time Energy Prices**: Fetches hourly electricity prices directly from GitHub CSV data source
+- **Real-time Energy Prices**: Fetches hourly electricity prices directly from the upstream CSV data source
 - **Multiple Providers**: Supports various Portuguese energy providers and tariff options
 - **Current & Historical Data**: Access current prices, today's min/max, and full price arrays
 - **Bi-tariff Support**: Compatible with Bi-horário Diário and Bi-horário Semanal tariffs
@@ -168,7 +168,7 @@ data:
 ## Data Source
 
 This integration fetches data directly from:
-- **Source**: [GitHub CSV Repository](https://github.com/tiagofelicia/tiagofelicia.github.io)
+- **Source**: [Direct CSV endpoint](https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv)
 - **File**: `data/precos-horarios.csv`
 - **Update Frequency**: CSV is typically updated daily with next-day prices
 - **Integration Refresh**: Every 5 minutes (configurable via SCAN_INTERVAL)
@@ -234,13 +234,13 @@ automation:
 
 **Possible causes:**
 - No data available for today yet (CSV updated daily)
-- GitHub source is temporarily unavailable
+- CSV source is temporarily unavailable
 - Local cache is empty
 
 **Solutions:**
 1. Check logs: `Settings → System → Logs` (search for "energy_price_tracker")
 2. Manually refresh: Call `energy_price_tracker.refresh_data` service
-3. Verify GitHub source is accessible: https://raw.githubusercontent.com/tiagofelicia/tiagofelicia.github.io/main/data/precos-horarios.csv
+3. Verify the CSV source is accessible: https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv
 
 ### High Database Size Warning
 
@@ -268,16 +268,16 @@ Contributions are welcome! Please:
 
 ## Credits
 
-This integration would not be possible without the amazing work of **[Tiago Felícia](https://github.com/tiagofelicia)**, who maintains the comprehensive Portuguese energy price dataset at [tiagofelicia.github.io](https://github.com/tiagofelicia/tiagofelicia.github.io).
+This integration would not be possible without the amazing work of **[Tiago Felícia](https://github.com/tiagofelicia)**, who maintains the comprehensive Portuguese energy price dataset at [dados.tiagofelicia.pt](https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv).
 
 **Special thanks to Tiago Felícia for:**
 
 - Collecting and maintaining accurate hourly energy price data for multiple Portuguese providers
-- Providing the data in an accessible CSV format updated daily via GitHub
+- Providing the data in an accessible CSV format updated daily
 - Making this data freely available to the community
 - Enabling developers to build tools like this integration
 
-The upstream data source can be found at: <https://github.com/tiagofelicia/tiagofelicia.github.io>
+The upstream data source can be found at: <https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv>
 
 **Data Providers Included:**
 

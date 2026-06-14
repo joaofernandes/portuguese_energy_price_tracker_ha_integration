@@ -1,10 +1,10 @@
 """CSV Data Fetcher for Energy Price Tracker.
 
-This module fetches Portuguese energy price data from Tiago Felícia's repository.
+This module fetches Portuguese energy price data from Tiago Felícia's dataset.
 
 Data Source Credits:
     The data is maintained by Tiago Felícia at:
-    https://github.com/tiagofelicia/tiagofelicia.github.io
+    https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv
 
     Special thanks to Tiago Felícia for collecting and maintaining accurate
     hourly energy price data for multiple Portuguese providers and making it
@@ -27,7 +27,8 @@ from homeassistant.util.file import write_utf8_file
 _LOGGER = logging.getLogger(__name__)
 
 # Data source: Tiago Felícia's Portuguese Energy Price Data
-# Repository: https://github.com/tiagofelicia/tiagofelicia.github.io
+DATA_SOURCE_URL = "https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv"
+# Historical data is still retrieved from the upstream GitHub repository.
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tiagofelicia/tiagofelicia.github.io"
 GITHUB_API_BASE = "https://api.github.com/repos/tiagofelicia/tiagofelicia.github.io"
 CSV_FILE_PATH = "data/precos-horarios.csv"
@@ -96,8 +97,8 @@ class CSVDataFetcher:
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
     async def fetch_current_csv(self, bypass_cache: bool = False, max_retries: int = 3) -> str:
-        """Fetch the current CSV file from GitHub main branch with retry logic."""
-        url = f"{GITHUB_RAW_BASE}/main/{CSV_FILE_PATH}"
+        """Fetch the current CSV file from the upstream CSV endpoint with retry logic."""
+        url = DATA_SOURCE_URL
 
         for attempt in range(max_retries):
             try:
@@ -116,7 +117,7 @@ class CSVDataFetcher:
 
             except asyncio.TimeoutError:
                 if attempt == max_retries - 1:
-                    raise Exception("Timeout fetching CSV from GitHub after all retries")
+                    raise Exception("Timeout fetching CSV from upstream source after all retries")
 
                 wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
                 _LOGGER.warning(f"Timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
@@ -306,7 +307,7 @@ class CSVDataFetcher:
         """
         Get prices for provider/tariff, optionally for a specific date.
 
-        The GitHub CSV always contains 2 days:
+        The CSV source always contains 2 days:
         - Today: Complete data (96 intervals)
         - Tomorrow: Incomplete data (only intervals published so far)
 
