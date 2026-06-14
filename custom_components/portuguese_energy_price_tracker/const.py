@@ -104,8 +104,8 @@ PROVIDERS: Final = {
             "TRIHORARIO_SEMANAL_HV",
         ],
     },
-    "MeoEnergia Tarifa Variável": {
-        "name": "MeoEnergia Tarifa Variável",
+    "MeoEnergia Tarifa Dinâmica": {
+        "name": "MeoEnergia Tarifa Dinâmica",
         "tariffs": [
             "SIMPLE",
             "BIHORARIO_DIARIO",
