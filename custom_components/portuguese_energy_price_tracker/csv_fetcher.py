@@ -178,6 +178,10 @@ class CSVDataFetcher:
         date_str = date.strftime("%Y-%m-%d")
         file_path = self.data_dir / f"prices_{date_str}.csv"
 
+        # Home Assistant's atomic file helper writes a temp file in the same
+        # directory, so make sure the cache directory still exists right before
+        # writing.
+        file_path.parent.mkdir(parents=True, exist_ok=True)
         write_utf8_file(str(file_path), content)
         _LOGGER.debug(f"Saved CSV to local file: {file_path}")
 
