@@ -105,7 +105,8 @@ flowchart TD
 
 ### Coordinator Layer
 - **EnergyPriceCoordinator**: DataUpdateCoordinator that manages data fetching and updates
-- **Update Cycle**: Runs every 5 minutes (SCAN_INTERVAL) to fetch fresh data
+- **Update Cycle**: Runs at each local quarter-hour boundary (`:00`, `:15`,
+  `:30`, and `:45`) to fetch fresh data
 - **Check Time**: After 1 PM, uses `bypass_cache=True` for tomorrow's data to ensure fresh fetch
 - **_process_prices**: Calculates current price, today's min/max, tomorrow's min/max
 

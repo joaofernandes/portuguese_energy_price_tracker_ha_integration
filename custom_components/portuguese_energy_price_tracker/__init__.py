@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 import homeassistant.helpers.config_validation as cv
@@ -542,8 +543,25 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"Energy Price Tracker - {self.display_name}",
-            update_interval=timedelta(seconds=SCAN_INTERVAL),
+            update_interval=None,
         )
+
+        # Price periods change on local quarter-hour boundaries. A regular
+        # coordinator interval would remain phase-shifted by the integration
+        # startup time, causing current_price to lag by up to 5 minutes.
+        if self.status != PROVIDER_STATUS_LEGACY:
+            self.entry.async_on_unload(
+                async_track_time_change(
+                    hass,
+                    self._async_refresh_at_quarter_hour,
+                    minute=set(range(0, 60, SCAN_INTERVAL // 60)),
+                    second=0,
+                )
+            )
+
+    async def _async_refresh_at_quarter_hour(self, _now: datetime) -> None:
+        """Refresh at the start of each price period."""
+        await self.async_request_refresh()
 
     async def _async_update_data(self):
         """Fetch data from the CSV source (both today and tomorrow)."""

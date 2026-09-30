@@ -16,7 +16,9 @@ PROVIDER_STATUS_SUPPORTED: Final = "supported"
 PROVIDER_STATUS_LEGACY: Final = "legacy"
 
 # Defaults
-DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes
+# Price data is published in 15-minute periods. The coordinator is scheduled
+# on these wall-clock boundaries rather than relative to integration startup.
+DEFAULT_SCAN_INTERVAL: Final = 900  # 15 minutes
 SCAN_INTERVAL: Final = DEFAULT_SCAN_INTERVAL
 DEFAULT_VAT: Final = 23
 DEFAULT_INCLUDE_VAT: Final = True

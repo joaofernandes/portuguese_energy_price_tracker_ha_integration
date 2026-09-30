@@ -178,7 +178,8 @@ This integration fetches data directly from:
 - **Source**: [Direct CSV endpoint](https://dados.tiagofelicia.pt/data/omie/precos-horarios.csv)
 - **File**: `data/precos-horarios.csv`
 - **Update Frequency**: CSV is typically updated daily with next-day prices
-- **Integration Refresh**: Every 5 minutes (configurable via SCAN_INTERVAL)
+- **Integration Refresh**: At each local quarter-hour boundary (`:00`, `:15`,
+  `:30`, and `:45`) to match the source price periods
 
 ## Supported Providers & Tariffs
 
