@@ -11,6 +11,10 @@ CONF_VAT: Final = "vat"
 CONF_INCLUDE_VAT: Final = "include_vat"
 CONF_ENABLE_DEBUG: Final = "enable_debug"
 
+# Provider lifecycle status
+PROVIDER_STATUS_SUPPORTED: Final = "supported"
+PROVIDER_STATUS_LEGACY: Final = "legacy"
+
 # Defaults
 DEFAULT_SCAN_INTERVAL: Final = 300  # 5 minutes
 SCAN_INTERVAL: Final = DEFAULT_SCAN_INTERVAL
@@ -146,3 +150,10 @@ TARIFF_NAMES: Final = {
     "TRIHORARIO_SEMANAL": "Tri-horário - Ciclo Semanal",
     "TRIHORARIO_SEMANAL_HV": "Tri-horário > 20.7 kVA - Ciclo Semanal",
 }
+
+
+def get_provider_status(provider: str) -> str:
+    """Return the lifecycle status for a provider in the current catalog."""
+    if provider in PROVIDERS:
+        return PROVIDER_STATUS_SUPPORTED
+    return PROVIDER_STATUS_LEGACY

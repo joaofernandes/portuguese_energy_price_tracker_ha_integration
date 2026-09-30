@@ -114,6 +114,13 @@ These sensors automatically reflect the currently selected provider's data. Use 
 
 For each configured instance, the integration creates the following sensors:
 
+Every provider-specific sensor includes a `status` attribute. It is `supported`
+when the provider is in the current upstream catalog and `legacy` when an
+already-configured provider has been removed from that catalog. Legacy
+providers remain configured for continuity, but do not fetch data: numeric
+price entities are unavailable, while their native values remain undefined and
+price collections/counts are empty/zero.
+
 #### Price Sensors (with and without VAT)
 
 - **Current Price** - `sensor.{provider}_{tariff}_current_price`
