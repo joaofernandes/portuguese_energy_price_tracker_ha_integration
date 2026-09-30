@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import EnergyPriceCoordinator
-from .const import DOMAIN
+from .const import DOMAIN, PROVIDER_STATUS_LEGACY, PROVIDER_STATUS_SUPPORTED
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -115,12 +115,18 @@ class EnergyPriceBaseSensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
+    def available(self) -> bool:
+        """Return false when the configured provider is legacy."""
+        return super().available and self.coordinator.status == PROVIDER_STATUS_SUPPORTED
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
         return {
             "provider": self._entry.data["provider"],
             "tariff": self._entry.data["tariff"],
             "display_name": self._entry.data.get("display_name", ""),
+            "status": self.coordinator.status,
         }
 
 
@@ -693,6 +699,21 @@ class ActiveProviderBaseSensor(SensorEntity):
         return self._entry.entry_id
 
     @property
+    def available(self) -> bool:
+        """Return false when the selected provider is legacy."""
+        select_entity_id = self._find_select_entity_id()
+        active_provider = self._hass.states.get(select_entity_id) if select_entity_id else None
+
+        if active_provider and DOMAIN in self._hass.data:
+            for coordinator in self._hass.data[DOMAIN].values():
+                if getattr(coordinator, "display_name", None) == active_provider.state:
+                    status = getattr(coordinator, "status", None)
+                    if status is not None:
+                        return status != PROVIDER_STATUS_LEGACY
+
+        return super().available
+
+    @property
     def device_info(self) -> dict[str, Any]:
         """Return device info to group routing sensors together."""
         return {
@@ -809,6 +830,12 @@ class ActiveProviderBaseSensor(SensorEntity):
             "active_provider": active_provider_state.state if active_provider_state else None,
             "integration": DOMAIN,
         }
+
+        if active_provider_state and DOMAIN in self._hass.data:
+            for coordinator in self._hass.data[DOMAIN].values():
+                if getattr(coordinator, "display_name", None) == active_provider_state.state:
+                    attrs["status"] = getattr(coordinator, "status", None)
+                    break
 
         # Add helpful message when no providers configured
         if active_provider_state and active_provider_state.state == "No providers configured":

@@ -1,7 +1,9 @@
 {
   "domain": "portuguese_energy_price_tracker",
   "name": "Portuguese Energy Price Tracker",
-  "codeowners": ["@joaofernandes"],
+  "codeowners": [
+    "@joaofernandes"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/joaofernandes/portuguese_energy_price_tracker_ha_integration",
@@ -9,5 +11,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/joaofernandes/portuguese_energy_price_tracker_ha_integration/issues",
   "requirements": [],
-  "version": "2.2.24"
+  "version": "2.2.25"
 }

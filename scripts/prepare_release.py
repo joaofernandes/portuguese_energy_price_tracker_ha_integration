@@ -108,7 +108,7 @@ def main():
 
     # Paths
     root = Path(__file__).parent.parent
-    manifest_path = root / "custom_components/energy_price_tracker/manifest.json"
+    manifest_path = root / "custom_components/portuguese_energy_price_tracker/manifest.json"
     changelog_path = root / "CHANGELOG.md"
 
     # Update files
@@ -124,7 +124,7 @@ def main():
     print(f"1. Review the changes:")
     print(f"   git diff")
     print(f"\n2. Commit the changes:")
-    print(f"   git add custom_components/energy_price_tracker/manifest.json CHANGELOG.md")
+    print(f"   git add custom_components/portuguese_energy_price_tracker/manifest.json CHANGELOG.md")
     print(f"   git commit -m \"Release v{version}\"")
     print(f"\n3. Push to GitHub (this will trigger automatic release):")
     print(f"   git push origin main")

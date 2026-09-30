@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.25] - 2026-09-30
+
+### Added
+
+- **Legacy provider status**: Configured providers that are removed from the upstream-supported provider catalog remain available as `legacy` entities, expose their status, and no longer fetch or expose stale price data.
+
+
 ## [2.2.18] - 2026-03-01
 
 ### Fixed

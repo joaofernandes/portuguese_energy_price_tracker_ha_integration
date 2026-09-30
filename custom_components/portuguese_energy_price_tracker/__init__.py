@@ -14,7 +14,14 @@ from homeassistant.util import dt as dt_util
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
-from .const import CONF_ENABLE_DEBUG, DEFAULT_ENABLE_DEBUG, DOMAIN, SCAN_INTERVAL
+from .const import (
+    CONF_ENABLE_DEBUG,
+    DEFAULT_ENABLE_DEBUG,
+    DOMAIN,
+    PROVIDER_STATUS_LEGACY,
+    SCAN_INTERVAL,
+    get_provider_status,
+)
 from .csv_fetcher import CSVDataFetcher
 
 _LOGGER = logging.getLogger(__name__)
@@ -521,6 +528,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self.provider = entry.data["provider"]
         self.tariff = entry.data["tariff"]
+        self.status = get_provider_status(self.provider)
         self.display_name = entry.data.get("display_name", f"{self.provider} {self.tariff}")
         self.vat = entry.data.get("vat", 23)
         self.include_vat = entry.data.get("include_vat", True)
@@ -540,6 +548,15 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         """Fetch data from the CSV source (both today and tomorrow)."""
         try:
+            if self.status == PROVIDER_STATUS_LEGACY:
+                _LOGGER.debug(
+                    "Provider %s is no longer in the supported provider catalog; "
+                    "keeping %s as legacy without fetching data",
+                    self.provider,
+                    self.display_name,
+                )
+                return self._empty_price_data()
+
             # Validate csv_fetcher is initialized
             if self.csv_fetcher is None:
                 raise ValueError("CSV fetcher not initialized")
@@ -616,6 +633,15 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
     async def refresh_data(self, target_date: datetime | None = None, bypass_cache: bool = False):
         """Refresh data for a specific date or today (and tomorrow if refreshing today)."""
         try:
+            if self.status == PROVIDER_STATUS_LEGACY:
+                _LOGGER.debug(
+                    "Skipping refresh for legacy provider %s (%s)",
+                    self.provider,
+                    self.display_name,
+                )
+                self.async_set_updated_data(self._empty_price_data())
+                return
+
             # If refreshing today (target_date is None), fetch both today and tomorrow
             if target_date is None:
                 _LOGGER.info(
@@ -682,6 +708,22 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
             )
             raise
 
+    def _empty_price_data(self) -> dict:
+        """Return the empty data shape used when no provider data exists."""
+        return {
+            "status": self.status,
+            "prices": [],
+            "current_price": None,
+            "today_max_price": None,
+            "today_min_price": None,
+            "today_max_price_vat": None,
+            "today_min_price_vat": None,
+            "tomorrow_max_price": None,
+            "tomorrow_min_price": None,
+            "tomorrow_max_price_vat": None,
+            "tomorrow_min_price_vat": None,
+        }
+
     def _process_prices(self, prices: list[dict]) -> dict:
         """Process price data and calculate current/today's min/max."""
         if not prices:
@@ -689,18 +731,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 f"No price data found for {self.provider} - {self.tariff}. "
                 f"All sensors will show 'Unknown'."
             )
-            return {
-                "prices": [],
-                "current_price": None,
-                "today_max_price": None,
-                "today_min_price": None,
-                "today_max_price_vat": None,
-                "today_min_price_vat": None,
-                "tomorrow_max_price": None,
-                "tomorrow_min_price": None,
-                "tomorrow_max_price_vat": None,
-                "tomorrow_min_price_vat": None,
-            }
+            return self._empty_price_data()
 
         # Get today's date (timezone-aware)
         now = dt_util.now()
@@ -728,6 +759,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
                 f"All sensors will show 'Unknown'."
             )
             return {
+                "status": self.status,
                 "prices": prices,
                 "current_price": None,
                 "today_max_price": None,
@@ -797,6 +829,7 @@ class EnergyPriceCoordinator(DataUpdateCoordinator):
         tomorrow_min_vat = min(tomorrow_prices_vat) if tomorrow_prices_vat else None
 
         return {
+            "status": self.status,
             "prices": prices,
             "current_price": current_price,
             "today_max_price": today_max,
