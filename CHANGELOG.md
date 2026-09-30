@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Fixed
 
-- **Legacy provider status**: Configured providers that are removed from the upstream-supported provider catalog remain available as `legacy` entities, expose their status, and no longer fetch or expose stale price data.
+- **Quarter-hour current price updates**: Align coordinator refreshes to local `:00`, `:15`, `:30`, and `:45` boundaries instead of polling relative to integration startup.
 
 ## [2.2.18] - 2026-03-01
 
