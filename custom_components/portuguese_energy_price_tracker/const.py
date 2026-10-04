@@ -38,20 +38,8 @@ PROVIDERS: Final = {
             "TRIHORARIO_SEMANAL_HV",
         ],
     },
-    "Coopérnico Base": {
-        "name": "Coopérnico Base",
-        "tariffs": [
-            "SIMPLE",
-            "BIHORARIO_DIARIO",
-            "BIHORARIO_SEMANAL",
-            "TRIHORARIO_DIARIO",
-            "TRIHORARIO_DIARIO_HV",
-            "TRIHORARIO_SEMANAL",
-            "TRIHORARIO_SEMANAL_HV",
-        ],
-    },
-    "Coopérnico GO": {
-        "name": "Coopérnico GO",
+    "Coopérnico Único": {
+        "name": "Coopérnico Único",
         "tariffs": [
             "SIMPLE",
             "BIHORARIO_DIARIO",
@@ -74,8 +62,8 @@ PROVIDERS: Final = {
             "TRIHORARIO_SEMANAL_HV",
         ],
     },
-    "EZU Tarifa Coletiva": {
-        "name": "EZU Tarifa Coletiva",
+    "EZU Tarifa Indexada": {
+        "name": "EZU Tarifa Indexada",
         "tariffs": [
             "SIMPLE",
             "BIHORARIO_DIARIO",
@@ -86,8 +74,8 @@ PROVIDERS: Final = {
             "TRIHORARIO_SEMANAL_HV",
         ],
     },
-    "G9 Smart Dynamic": {
-        "name": "G9 Smart Dynamic",
+    "G9 Smart Dynamic SPOT 8!": {
+        "name": "G9 Smart Dynamic SPOT 8!",
         "tariffs": [
             "SIMPLE",
             "BIHORARIO_DIARIO",
@@ -108,6 +96,12 @@ PROVIDERS: Final = {
             "TRIHORARIO_DIARIO_HV",
             "TRIHORARIO_SEMANAL",
             "TRIHORARIO_SEMANAL_HV",
+        ],
+    },
+    "Iberdrola - Simples Indexado Dinâmico": {
+        "name": "Iberdrola - Simples Indexado Dinâmico",
+        "tariffs": [
+            "SIMPLE",
         ],
     },
     "MeoEnergia Tarifa Dinâmica": {
